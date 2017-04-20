@@ -1,0 +1,569 @@
+---
+title: "stats"
+author: "Zexi Han"
+date: "04/18/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(dplyr)
+library(magrittr)
+library(lubridate)
+library(readr)
+library(ggplot2)
+```
+
+## Statistics
+
+```{r}
+setwd("D:/workspace_r")
+files <- list.files("./stats")
+```
+
+```{r}
+name_split <- str_split(files," - ")
+project_names <- sapply(1:35872, function(i) paste0(name_split[[i]][1],"/",name_split[[i]][2]))
+user_names <- sapply(1:35872, function(i) name_split[[i]][1])
+```
+
+```{r}
+cleaned_project_list <- list()
+for(i in 1:35872){
+  p <- read_csv(paste0("D:/workspace_r/stats/",files[i]))
+  if(nrow(p)!=0){
+    cleaned_project_list[[i]] <- p %>% 
+      group_by(w) %>% 
+      summarise(a=sum(a),d=sum(d),c=sum(c))
+  }else{
+    cleaned_project_list[[i]] <- NA
+  }
+}
+saveRDS(cleaned_project_list, file = "cleaned_project_list.rds")
+```
+
+Start
+
+```{r}
+cleaned_project_list <- readRDS("cleaned_project_list.rds")
+project_names <- readRDS("project_names.rds")
+user_names <- readRDS("user_names.rds")
+```
+
+```{r}
+num_weeks <- sapply(1:35872, function(i) nrow(cleaned_project_list[[i]]))
+num_weeks[sapply(num_weeks, is.null)] <- NA
+num_weeks <- unlist(num_weeks)
+small_summary <- data.frame(id=1:35872, project_names, user_names, num_weeks)
+```
+
+```{r}
+p6 <- cleaned_project_list[[6]]
+p6 %>% 
+  ggplot(aes(1:79,c)) +
+    geom_bar(stat="identity")
+```
+
+## Projects
+
+```{r}
+popular_projects <- read_csv("popular_projects.csv")
+popular_projects$n_watchers <- as.integer(popular_projects$n_watchers)
+summary(popular_projects)
+```
+
+Separate groups by quantiles of num of stargazers
+
+```{r}
+set.seed(123)
+# 100
+group_100 <- popular_projects %>% 
+  subset(n_watchers>=959) %>% 
+  select(repo, owner_id, language, n_watchers)
+summary_100 <- small_summary %>% 
+  subset(project_names %in% group_100$repo) %>% 
+  subset(!is.na(num_weeks))
+# 75
+group_75 <- popular_projects %>% 
+  subset(n_watchers<959 & n_watchers>=474)
+summary_75 <- small_summary %>% 
+  subset(project_names %in% group_75$repo) %>% 
+  subset(!is.na(num_weeks))
+# 50
+group_50 <- popular_projects %>% 
+  subset(n_watchers<474 & n_watchers>=273)
+summary_50 <- small_summary %>% 
+  subset(project_names %in% group_50$repo) %>% 
+  subset(!is.na(num_weeks))
+# 25
+group_25 <- popular_projects %>% 
+  subset(n_watchers<273)
+summary_25 <- small_summary %>% 
+  subset(project_names %in% group_25$repo) %>% 
+  subset(!is.na(num_weeks)) 
+```
+
+## Project Life
+
+```{r}
+g100_life <- sample(summary_100$num_weeks,2000)
+g75_life <- sample(summary_75$num_weeks,2000)
+g50_life <- sample(summary_50$num_weeks,2000)
+g25_life <- sample(summary_25$num_weeks,2000)
+num_weeks <- c(g100_life,g75_life,g50_life,g25_life)
+group <- c(rep("G100",2000),rep("G75",2000),rep("G50",2000),rep("G25",2000))
+project_life <- data.frame(group, num_weeks)
+project_life %>% 
+  ggplot(aes(num_weeks,fill=group)) +
+    geom_density(alpha=.3) +
+    scale_x_continuous(limits = c(0, 1000)) +
+    labs(
+      x="Number of weeks",
+      y="Density",
+      title="Project Life",
+      fill="Group"
+    )
+```
+
+So we select projects that have at least two-years life (104 weeks) for analysis.
+
+## Weekly number of commits
+
+```{r}
+summary_2y_100 <- summary_100 %>% 
+  subset(num_weeks>=104) %>% 
+  sample_n(975)
+
+summary_2y_75 <- summary_75 %>% 
+  subset(num_weeks>=104) %>% 
+  sample_n(975)
+
+summary_2y_50 <- summary_50 %>% 
+  subset(num_weeks>=104) %>% 
+  sample_n(975)
+
+summary_2y_25 <- summary_25 %>% 
+  subset(num_weeks>=104) %>% 
+  sample_n(975)
+
+cpl_2y_100 <- list()
+cpl_2y_75 <- list()
+cpl_2y_50 <- list()
+cpl_2y_25 <- list()
+for(i in 1:975){
+  cpl_2y_100[[i]] <- cleaned_project_list[[summary_2y_100$id[i]]] %>% 
+    head(104)
+  cpl_2y_75[[i]] <- cleaned_project_list[[summary_2y_75$id[i]]] %>% 
+    head(104)
+  cpl_2y_50[[i]] <- cleaned_project_list[[summary_2y_50$id[i]]] %>% 
+    head(104)
+  cpl_2y_25[[i]] <- cleaned_project_list[[summary_2y_25$id[i]]] %>% 
+    head(104)
+}
+```
+
+Inspection
+
+```{r}
+df_100 <- data.frame(w=1:104,c=cpl_2y_100[[500]]$c)
+ggplot(df_100, aes(w,c)) +
+  geom_line()
+df_75 <- data.frame(w=1:104,c=cpl_2y_75[[500]]$c)
+ggplot(df_75, aes(w,c)) +
+  geom_line()
+df_50 <- data.frame(w=1:104,c=cpl_2y_50[[500]]$c)
+ggplot(df_50, aes(w,c)) +
+  geom_line()
+df_25 <- data.frame(w=1:104,c=cpl_2y_25[[500]]$c)
+ggplot(df_25, aes(w,c)) +
+  geom_line()
+```
+
+We then divide 2 years into 8 quarters:
+1:13, 14:26, 27:39, 40:52,
+53:65, 66:78, 79:91, 92:104
+Compute the average number of total commits in each quarter
+
+```{r}
+compute_avg_q_commits <- function(cpl_2y){
+  Q_name <- c(rep(c("Q1","Q2","Q3","Q4","Q5","Q6","Q7","Q8"),length(cpl_2y)))
+  Q_commit <- c()
+  for (i in 1: length(cpl_2y)){
+    Q1 <- mean(cpl_2y[[i]]$c[1:13])
+    Q2 <- mean(cpl_2y[[i]]$c[14:26])
+    Q3 <- mean(cpl_2y[[i]]$c[27:39])
+    Q4 <- mean(cpl_2y[[i]]$c[40:52])
+    Q5 <- mean(cpl_2y[[i]]$c[53:65])
+    Q6 <- mean(cpl_2y[[i]]$c[66:78])
+    Q7 <- mean(cpl_2y[[i]]$c[79:91])
+    Q8 <- mean(cpl_2y[[i]]$c[92:104])
+    Q_commit <- c(Q_commit,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8)
+  }
+  q_df <- data.frame(Q_name,Q_commit)
+  return(q_df)
+}
+qc_100 <- compute_avg_q_commits(cpl_2y_100)
+qc_75 <- compute_avg_q_commits(cpl_2y_75)
+qc_50 <- compute_avg_q_commits(cpl_2y_50)
+qc_25 <- compute_avg_q_commits(cpl_2y_25)
+```
+
+Vertical comparison
+
+```{r}
+# g100
+ggplot(qc_100,aes(Q_commit,color=Q_name)) +
+  geom_density(alpha=.3) +
+  scale_x_continuous(limits = c(0, 20)) +
+  labs(
+      x="Number of commits",
+      y="Density",
+      title="Group 100 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+```{r}
+# g75
+ggplot(qc_75,aes(Q_commit,color=Q_name)) +
+  geom_density(alpha=.3) +
+  scale_x_continuous(limits = c(0, 20)) +
+  labs(
+      x="Number of commits",
+      y="Density",
+      title="Group 75 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+```{r}
+# g50
+ggplot(qc_50,aes(Q_commit,color=Q_name)) +
+  geom_density(alpha=.3) +
+  scale_x_continuous(limits = c(0, 20)) +
+  labs(
+      x="Number of commits",
+      y="Density",
+      title="Group 50 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+```{r}
+# g25
+ggplot(qc_25,aes(Q_commit,color=Q_name)) +
+  geom_density(alpha=.3) +
+  scale_x_continuous(limits = c(0, 20)) +
+  labs(
+      x="Number of commits",
+      y="Density",
+      title="Group 25 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+```{r}
+# g100
+ggplot(qc_100,aes(Q_name,Q_commit,color=Q_name)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 20)) +
+  labs(
+      x="Quarter",
+      y="Number of commits",
+      title="Group 100 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+```{r}
+# g75
+ggplot(qc_75,aes(Q_name,Q_commit,color=Q_name)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 20)) +
+  labs(
+      x="Quarter",
+      y="Number of commits",
+      title="Group 75 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+```{r}
+# g50
+ggplot(qc_50,aes(Q_name,Q_commit,color=Q_name)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 20)) +
+  labs(
+      x="Quarter",
+      y="Number of commits",
+      title="Group 50 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+```{r}
+# g25
+ggplot(qc_25,aes(Q_name,Q_commit,color=Q_name)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 20)) +
+  labs(
+      x="Quarter",
+      y="Number of commits",
+      title="Group 25 - Average number of commits by quarter",
+      color="Quarter"
+    )
+```
+
+Horizontal comparison
+
+```{r}
+h_c <- function(qc1,qc2,qc3,qc4,q){
+  qc1_q <- qc1 %>% subset(Q_name==q)
+  qc2_q <- qc2 %>% subset(Q_name==q)
+  qc3_q <- qc3 %>% subset(Q_name==q)
+  qc4_q <- qc4 %>% subset(Q_name==q)
+  qc_q <- c(qc1_q$Q_commit,qc2_q$Q_commit,qc3_q$Q_commit,qc4_q$Q_commit)
+  return(qc_q)
+}
+Q1 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q1")
+Q2 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q2")
+Q3 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q3")
+Q4 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q4")
+Q5 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q5")
+Q6 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q6")
+Q7 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q7")
+Q8 <- h_c(qc_100,qc_75,qc_50,qc_25,"Q8")
+
+Q_name <- c(rep("G100",975),rep("G75",975),rep("G50",975),rep("G25",975))
+qc_x <- data.frame(Q_name,Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q8)
+qc_x$Q_name <- factor(qc_x$Q_name, levels = c("G100","G75","G50","G25"))
+```
+
+
+```{r}
+# q1
+ggplot(qc_x,aes(Q1,color=Q_name)) +
+  geom_density(alpha=.3) +
+  scale_x_continuous(limits = c(0, 20)) +
+  labs(
+      x="Number of commits",
+      y="Density",
+      title="Quarter 1 - Sum number of commits by group",
+      color="Group"
+    )
+```
+
+```{r}
+# q8
+ggplot(qc_x,aes(Q8,color=Q_name)) +
+  geom_density(alpha=.3) +
+  scale_x_continuous(limits = c(0, 20)) +
+  labs(
+      x="Number of commits",
+      y="Density",
+      title="Quarter 8 - Sum number of commits by group",
+      color="Group"
+    )
+```
+
+```{r}
+# q1
+ggplot(qc_x,aes(Q_name,Q1,color=Q_name)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 20)) +
+  labs(
+      x="Group",
+      y="Number of commits",
+      title="Quarter 1",
+      color="Group"
+    )
+```
+
+```{r}
+# q8
+ggplot(qc_x,aes(Q_name,Q8,color=Q_name)) +
+  geom_boxplot() +
+  scale_y_continuous(limits = c(0, 20)) +
+  labs(
+      x="Group",
+      y="Number of commits",
+      title="Quarter 8",
+      color="Group"
+    )
+```
+
+## Looking for life cycle patterns
+
+```{r}
+# compute_single_q <- function(cpl_2y,i){
+#   q1 <- mean(cpl_2y[[i]]$c[1:13])
+#   q2 <- mean(cpl_2y[[i]]$c[14:26])
+#   q3 <- mean(cpl_2y[[i]]$c[27:39])
+#   q4 <- mean(cpl_2y[[i]]$c[40:52])
+#   q5 <- mean(cpl_2y[[i]]$c[53:65])
+#   q6 <- mean(cpl_2y[[i]]$c[66:78])
+#   q7 <- mean(cpl_2y[[i]]$c[79:91])
+#   q8 <- mean(cpl_2y[[i]]$c[92:104])
+#   q_max <- max(q1,q2,q3,q4,q5,q6,q7,q8)
+#   q_min <- min(q1,q2,q3,q4,q5,q6,q7,q8)
+#   q1 <- (q1-q_min)/(q_max-q_min)
+#   q2 <- (q2-q_min)/(q_max-q_min)
+#   q3 <- (q3-q_min)/(q_max-q_min)
+#   q4 <- (q4-q_min)/(q_max-q_min)
+#   q5 <- (q5-q_min)/(q_max-q_min)
+#   q6 <- (q6-q_min)/(q_max-q_min)
+#   q7 <- (q7-q_min)/(q_max-q_min)
+#   q8 <- (q8-q_min)/(q_max-q_min)
+#   q_commit <- c(q1,q2,q3,q4,q5,q6,q7,q8)
+#   q_name <- c("q1","q2","q3","q4","q5","q6","q7","q8")
+#   return(data.frame(q_name,q_commit))
+# }
+# single_q <- compute_single_q(cpl_2y_100,78)
+# ggplot(single_q,aes(q_name,q_commit,fill=q_name)) +
+#   geom_bar(stat = "identity")
+```
+
+```{r}
+compute_single_q <- function(cpl_2y,i){
+  prophase <- sum(cpl_2y[[i]]$c[1:34])
+  metaphase  <- sum(cpl_2y[[i]]$c[35:69])
+  anaphase  <- sum(cpl_2y[[i]]$c[70:104])
+  q_commit <- c(prophase,metaphase,anaphase)
+  q_name <- c("prophase","metaphase","anaphase")
+  return(data.frame(q_name,q_commit))
+}
+single_q <- compute_single_q(cpl_2y_100,500)
+ggplot(single_q,aes(q_name,q_commit,fill=q_name)) +
+  geom_bar(stat = "identity") +
+  labs(
+      x="Phase",
+      y="Number of commits",
+      title="Life Cycle Pattern of Project No.500",
+      fill='Phase'
+    )
+```
+
+```{r}
+compute_phase <- function(cpl_2y){
+  prophase <- c()
+  metaphase <- c()
+  anaphase <- c()
+  for(i in 1:length(cpl_2y)){
+    prophase <- c(prophase,sum(cpl_2y[[i]]$c[1:34]))
+    metaphase  <- c(metaphase,sum(cpl_2y[[i]]$c[35:69]))
+    anaphase  <- c(anaphase,sum(cpl_2y[[i]]$c[70:104]))
+  }
+  phase_df <- data.frame(anaphase,metaphase,prophase)
+  return(phase_df)
+}
+phase_commits_100 <- compute_phase(cpl_2y_100)
+phase_commits_75 <- compute_phase(cpl_2y_75)
+phase_commits_50 <- compute_phase(cpl_2y_50)
+phase_commits_25 <- compute_phase(cpl_2y_25)
+```
+
+## Clustering
+
+```{r}
+# standardize data and remove outlier
+scale_phase <- function(phase_commits){
+  scaled_phase <- data.frame(scale(phase_commits[,1:3]))
+  standard_phase <- scaled_phase %>% 
+    subset(anaphase < 1 & anaphase > -1) %>% 
+    subset(metaphase < 1 & metaphase > -1) %>% 
+    subset(prophase < 1 & prophase > -1)
+  return(standard_phase)
+}
+standard_100 <- scale_phase(phase_commits_100)
+standard_75 <- scale_phase(phase_commits_75)
+standard_50 <- scale_phase(phase_commits_50)
+standard_25 <- scale_phase(phase_commits_25)
+```
+
+```{r}
+# pca
+pc <- princomp(standard_100[,1:3], cor=TRUE, scores=TRUE)
+summary(pc)
+plot(pc,type="lines",title="")
+```
+
+
+```{r}
+library(rgl)
+plot3d(standard_100[,1:3])
+```
+
+```{r}
+plot3d(standard_100[,1:3])
+text3d(pc$scores,texts=rownames(standard_100))
+text3d(pc$loadings[,1:3], texts=rownames(pc$loadings), col="red")
+coords <- NULL
+for (i in 1:nrow(pc$loadings)) {
+  coords <- rbind(coords, rbind(c(0,0,0),pc$loadings[i,1:3]))
+}
+lines3d(coords, col="red", lwd=4)
+```
+
+```{r}
+# k-means cluster
+phase_cluster_100 <- kmeans(standard_100[,1:3], 4)
+phase_cluster_75 <- kmeans(standard_75[,1:3], 4)
+phase_cluster_50 <- kmeans(standard_50[,1:3], 4)
+phase_cluster_25 <- kmeans(standard_25[,1:3], 4)
+phase_cluster_75
+
+standard_100$cluster <- as.factor(phase_cluster_100$cluster)
+standard_75$cluster <- as.factor(phase_cluster_75$cluster)
+standard_50$cluster <- as.factor(phase_cluster_50$cluster)
+standard_25$cluster <- as.factor(phase_cluster_25$cluster)
+```
+
+```{r}
+# 100
+plot3d(standard_100[,1:3],col=phase_cluster_100$cluster)
+```
+```{r}
+# 75
+plot3d(standard_75[,1:3],col=phase_cluster_75$cluster)
+```
+```{r}
+# 50
+plot3d(standard_50[,1:3],col=phase_cluster_50$cluster)
+```
+```{r}
+# 25
+plot3d(standard_25[,1:3],col=phase_cluster_25$cluster)
+```
+
+
+
+
+
+
+
+For small points
+
+```{r}
+# small data points
+scale_phase_small <- function(phase_commits){
+  scaled_phase <- data.frame(scale(phase_commits[,1:3]))
+  standard_phase <- scaled_phase %>% 
+    subset(prophase < 0 & metaphase < 0 & anaphase < 0)
+  return(standard_phase)
+}
+standard_small_100 <- scale_phase_small(phase_commits_100)
+standard_small_75 <- scale_phase_small(phase_commits_75)
+standard_small_50 <- scale_phase_small(phase_commits_50)
+standard_small_25 <- scale_phase_small(phase_commits_25)
+```
+
+```{r}
+phase_cluster_small_100 <- kmeans(standard_small_100[,1:3], 4)
+phase_cluster_small_100
+```
+```{r}
+plot3d(standard_small_100[,1:3],col=phase_cluster_small_100$cluster)
+```
+
+

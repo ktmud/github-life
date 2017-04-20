@@ -1,0 +1,74 @@
+---
+title: "Life and Death of Great Open Source Projects"
+author:
+  - "Jianchao Yang <yang.jianc@husky.neu.edu>"
+  - "Zexi Han <han.ze@husky.neu.edu>"
+date: "4/15/2017"
+output: 
+  html_notebook: 
+    fig_caption: yes
+    highlight: pygments
+    theme: cosmo
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  #message = FALSE, warning = FALSE, 
+  eval = FALSE, tidy = FALSE
+)
+options(htmltools.dir.version = FALSE)
+```
+
+Following code depends on the latest version of `RMySQL` and `DBI` package:
+
+```{r}
+devtools::install_github("rstats-db/DBI")
+devtools::install_github("rstats-db/RMySQL")
+devtools::install_github("hadley/dplyr")
+```
+
+
+```{r}
+library(tidyverse)
+library(magrittr)
+library(stringr)
+library(RMySQL)
+
+db <- src_mysql(
+  dbname = Sys.getenv("MYSQL_DBNAME"),
+  host = Sys.getenv("MYSQL_HOST"),
+  port = as.integer(Sys.getenv("MYSQL_PORT")),
+  user = Sys.getenv("MYSQL_USER"),
+  password = Sys.getenv("MYSQL_PASSWD")
+)
+if (!exists("ght.tables")) {
+  ght.tables <- src_tbls(db)
+}
+ght <- lapply(ght.tables, function(x) tbl(db, x))
+names(ght) <- ght.tables
+```
+
+```{r eval=TRUE}
+n_total <- ght$popular_projects %>% count() %>% collect() %>% .$n
+```
+
+
+## Identify Top 1% Propular Projects for Each Language
+
+First, we create an intermediate table to store watchers count for each project. Only original repositories were retained, forks and deleted repositories were discarded (since we will not be able to get the latest data from Github for them anyway).
+
+```{r, eval=FALSE}
+count_project_watchers <- tbl(db, "count_project_watchers")
+n_total <- count_project_watchers %>% count() %>% collect() %>% .$n
+```
+
+Then we pick only the top 1% projects with the most watchers for each programming language. There are `r format(n_total, big.mark = ",")` unique projects (not forks) in total, the top 1% will give us a sample size of around
+`r format(round(n_total * 0.01, -3), big.mark = ",")` projects.
+
+```{r, eval = FALSE}
+popular_projects <- tbl(db, "popular_projects")
+```
+
+Then we collect the activities of these repositories over the last 6 months from Github API.
+
