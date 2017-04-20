@@ -13,6 +13,6 @@
 *.dropbox
 *.PNG
 *.png
-
 packrat/src
 packrat/lib*/
+packrat/src/
