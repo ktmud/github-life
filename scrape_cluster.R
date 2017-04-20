@@ -12,17 +12,19 @@ plan(cluster, workers = cl)
 # cleanup old log files
 unlink("/tmp/github-scrape-*.log")
 
-GenExpression <- function(i, partition,
-                          list_fun = "ListPopularRepos",
-                          scrape_stats = TRUE) {
+clst.offset <- 0
+clst.n_max <- 1000
+clst.list_fun <- ListRandomRepos
+
+GenExpression <- function(i, partition, list_fun = "ListPopularRepos") {
   parse(
     text = sprintf('
-      source("scrape.R")
-      sink(
-        file(str_c("/tmp/github-scrape-", Sys.getpid() ,".log"), open = "a"),
-        type = "message"
-      )
-      ScrapeAll(offset = %s, n_max = %s, list_fun = %s, scrape_stats = %s)',
+      clst.offset <- %s
+      clst.n_max <- %s
+      clst.list_fun <- %s
+      log.ile <- str_c("/tmp/github-scrape-", Sys.getpid() ,".log") 
+      sink(file(logfile, open = "a"), type = "message")
+      source("scrape.R")',
       partition[i],
       partition[i + 1],
       list_fun, scrape_stats

@@ -1,5 +1,6 @@
 source("include/init.R")
 source("include/helpers.R")
+source("include/db.R")
 source("include/scraper/gh.R")
 source("include/scraper/issues.R")
 source("include/scraper/stats.R")
@@ -37,7 +38,7 @@ FetchAll <- function(repos,
     
     if (!scrape_issues) {
       # do nothing is not scrape issues
-    } else if (skip_existing && RepoExistsInTable(repo, "g_issues")) {
+    } else if (skip_existing && RepoExists(repo, "g_issues")) {
       message("\t XXX issues", appendLF = FALSE)
     } else {
       issues <- ScrapeIssues(repo, state = state, ...)
@@ -59,7 +60,7 @@ FetchAll <- function(repos,
     
     if (!scrape_issue_events) {
       # do nothing is dont need to scrape events
-    } else if (skip_existing && RepoExistsInTable(repo, "g_issue_events")) {
+    } else if (skip_existing && RepoExists(repo, "g_issue_events")) {
       message("\t XXXX issue_events", appendLF = FALSE)
     } else {
       issue_events <- ScrapeIssueEvents(repo, state = state, ...)
@@ -94,3 +95,10 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   message("")
   message(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
+
+ScrapeAll(
+  offset = clst.offset,
+  n_max = clst.n_max,
+  list_fun = clst.list_fun,
+  scrape_stats = TRUE
+)

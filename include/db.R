@@ -27,7 +27,8 @@ RepoExists <- function(fullname, in_table = "g_issues") {
   # Check whether repo existed locally
   res <- dbGetQuery(db$con, sprintf(
     "SELECT 1 FROM %s WHERE repo = %s LIMIT 1",
-    dbQuoteIdentifier(db$con, in_table), fullname
+    dbQuoteIdentifier(db$con, in_table),
+    dbQuoteString(db$con, fullname)
   ))
   nrow(res) == 1
 }
