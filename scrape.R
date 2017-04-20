@@ -96,9 +96,3 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   message(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
 
-ScrapeAll(
-  offset = clst.offset,
-  n_max = clst.n_max,
-  list_fun = clst.list_fun,
-  scrape_stats = TRUE
-)

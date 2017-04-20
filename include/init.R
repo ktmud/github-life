@@ -25,3 +25,8 @@ db <- src_mysql(
 ght.tables <- src_tbls(db)
 names(ght.tables) <- ght.tables
 ght <- lapply(ght.tables, function(x) tbl(db, x))
+
+# Necessary for EMOJIs! :), otherwise the `g_issues.title` column
+# may complain
+dbExecute(db$con, "SET NAMES utf8mb4")
+

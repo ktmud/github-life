@@ -2,6 +2,7 @@
 .Rproj.user
 .DS_Store
 .Renviron
+.Rhistory
 
 *.zip
 *.csv

@@ -14,20 +14,24 @@ unlink("/tmp/github-scrape-*.log")
 
 clst.offset <- 0
 clst.n_max <- 1000
-clst.list_fun <- ListRandomRepos
+clst.list_fun <- "ListRandomRepos"
 
-GenExpression <- function(i, partition, list_fun = "ListPopularRepos") {
+GenExpression <- function(i, partition, list_fun = clst.list_fun) {
   parse(
     text = sprintf('
-      clst.offset <- %s
-      clst.n_max <- %s
-      clst.list_fun <- %s
-      log.ile <- str_c("/tmp/github-scrape-", Sys.getpid() ,".log") 
+      logfile <- paste0("/tmp/github-scrape-", Sys.getpid() ,".log") 
       sink(file(logfile, open = "a"), type = "message")
-      source("scrape.R")',
+      source("scrape.R")
+      ScrapeAll(
+        offset = %s,
+        n_max = %s,
+        list_fun = %s,
+        scrape_stats = TRUE
+      )
+    ',
       partition[i],
       partition[i + 1],
-      list_fun, scrape_stats
+      list_fun
     )
   )
 }
@@ -39,7 +43,7 @@ n_total <- ght$popular_projects %>% count() %>% collect() %>% .$n
 partition <- seq(0, n_total, 50)
 f <- list()
 for (i in seq(1, length(partition) - 1)) {
-  myexp <- GenExpression(i, partition)
+  myexp <- GenExpression(i, partition, "ListPopularRepos")
   f[[i]] <- future(eval(myexp))
   message("Queued: ", partition[i])
   Sys.sleep(5)
