@@ -37,17 +37,26 @@ GenExpression <- function(i, partition, list_fun = clst.list_fun) {
 }
 
 f <- list()
-n_total <- ght$popular_projects %>% count() %>% collect() %>% .$n
 
-# split into small chunks is more efficient
+# When local
+n_total <- 1000
 partition <- seq(0, n_total, 50)
-f <- list()
 for (i in seq(1, length(partition) - 1)) {
-  myexp <- GenExpression(i, partition, "ListPopularRepos")
+  myexp <- GenExpression(i, partition, "ListRandomRepos")
   f[[i]] <- future(eval(myexp))
   message("Queued: ", partition[i])
   Sys.sleep(5)
 }
+
+# split into small chunks is more efficient
+# n_total <- ght$popular_projects %>% count() %>% collect() %>% .$n
+# partition <- seq(0, n_total, 50)
+# for (i in seq(1, length(partition) - 1)) {
+#   myexp <- GenExpression(i, partition, "ListPopularRepos")
+#   f[[i]] <- future(eval(myexp))
+#   message("Queued: ", partition[i])
+#   Sys.sleep(5)
+# }
 
 # this ensures every queue runs successfully
 v <- lapply(f, FUN = value)
