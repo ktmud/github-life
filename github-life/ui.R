@@ -19,6 +19,7 @@ sidebar <- dashboardSidebar(
         "Overview", icon = icon("git-square"), tabName = "repo"
       ),
       menuItem(
+        selected = TRUE,
         "Explore a repo", icon = icon("git"), tabName = "single-repo"
       )
     ), 
@@ -38,22 +39,25 @@ repo_tab <- fluidRow(
     HTML(read_file("overview.html"))
   )
 )
+
 single_repo_tab <- div(
   fluidRow(
     box(
       width = 12,
-      title = "Search a repository",
-      textInput("repo", NULL, value = "integrity/integrity",
-                placeholder = "owner/repo")
+      title = "Select a repository",
+      selectizeInput("repo", NULL, NULL)
     )
   ),
   div(
     id = "single-repo",
     fluidRow(
       box(
-        width = 6,
-        title = "Activity Timeline",
-        plotlyOutput("repo_timeline")
+        width = 12,
+        title = htmlOutput("repo_timeline_title"),
+        div(class = "info",
+          "Number of commits from top contributors and
+          number of new issues reported."),
+        plotlyOutput("repo_timeline", height = "350px")
       )
     )
   )

@@ -5,14 +5,22 @@ source("include/scraper/gh.R")
 source("include/scraper/issues.R")
 source("include/scraper/stats.R")
 
+pad <- function(x, n = 4, side = "left") {
+  # pad numbers for better messaging
+  str_pad(x, n, side = side)
+}
+msg <- function(x, ..., appendLF = FALSE) {
+  message(x, ..., appendLF = appendLF)
+}
+  
 # Start Fetching Data -----------
 FetchAll <- function(repos,
                      state = "all",
                      skip_existing = TRUE,
-                     scrape_issue_events = TRUE,
+                     scrape_stats = TRUE,
                      scrape_issues = TRUE,
-                     scrape_stats = do_scrape_stats,
-                     ...) {
+                     scrape_issue_events = TRUE,
+                     scrape_issue_comments = TRUE, ...) {
   # Fetch issues, issue events for a list of repos
   # Args:
   #   repos - a vector of repository names
@@ -21,67 +29,70 @@ FetchAll <- function(repos,
   #  a list of logical values indicating whether scraping succeeded
   #  for each repo
   names(repos) <- repos
-  
   walk(repos, function(repo) {
-    message(str_pad(str_trunc(repo, 28), 32, side = "right"), appendLF = FALSE)
+    # Begin scraping ...
+    msg(pad(str_trunc(repo, 28), 30, side = "right"))
     if (scrape_stats) {
-      stats_ret <- ScrapeStats(repo, skip_existing = skip_existing)
-      if (is.null(stats_ret)) {
-        message(" stats pass", appendLF = FALSE)
-      } else if (stats_ret == FALSE) {
-        message(" (X) resource unavailable.")
+      n <- ScrapeStats(repo, skip_existing)
+      if (is.null(n)) {
+        msg("(X) resource unavailable.  ", appendLF = TRUE)
+        # don't scrape others if the resource is known unavailable
         return(FALSE)
+      } else if (n == -1) {
+        # -1 means data already existed
+        msg("xxxx weeks  ")
       } else {
-        message(" stats OK", appendLF = FALSE)
+        msg(pad(n), " weeks  ")
       }
     }
-    
-    if (!scrape_issues) {
-      # do nothing is not scrape issues
-    } else if (skip_existing && RepoExists(repo, "g_issues")) {
-      message("\t XXX issues", appendLF = FALSE)
-    } else {
-      issues <- ScrapeIssues(repo, state = state, ...)
-      if (is.null(issues)) {
-        message("Error: repo deleted or blocked.")
+    if (scrape_issues) {
+      n <- ScrapeIssues(repo, skip_existing)
+      if (is.null(n)) {
+        msg("(X) resource unavailable.  ", appendLF = TRUE)
         return(FALSE)
-      }
-      n <- nrow(issues)
-      if (n == 0 && state == "all") {
-        # No need to proceed if there were no issues at all.
-        message("\t   0 issues \tOK.")
-        return(TRUE)
-      }
-      message("\t ", str_pad(n, 3, side = "left"), " issues", appendLF = FALSE)
-      if (n > 0) {
-        SaveToTable("g_issues", issues)
+      } else if (n == -1) {
+        msg("xxxx issues  ")
+      } else {
+        msg(pad(n), " issues  ")
       }
     }
-    
-    if (!scrape_issue_events) {
-      # do nothing is dont need to scrape events
-    } else if (skip_existing && RepoExists(repo, "g_issue_events")) {
-      message("\t XXXX issue_events", appendLF = FALSE)
-    } else {
-      issue_events <- ScrapeIssueEvents(repo, state = state, ...)
-      n <- nrow(issue_events)
-      message("\t ", str_pad(n, 4, side = "left"), " issue_events", appendLF = FALSE)
-      if (n > 0) {
-        SaveToTable("g_issue_events", issue_events)
+    if (scrape_issue_events) {
+      n <- ScrapeIssueEvents(repo, skip_existing)
+      if (is.null(n)) {
+        msg("(X) resource unavailable.  ", appendLF = TRUE)
+        return(FALSE)
+      } else if (n == -1) {
+        msg("xxxx ievents  ")
+      } else {
+        msg(pad(n), " ievents  ")
       }
     }
-    message("  OK.")
+    if (scrape_issue_comments) {
+      n <- ScrapeIssueComments(repo, skip_existing)
+      if (is.null(n)) {
+        msg(" (X) resource unavailable.  ", appendLF = TRUE)
+        return(FALSE)
+      } else if (n == -1) {
+        msg("xxxx icomments  ")
+      } else {
+        msg(pad(n), " icomments  ")
+      }
+    }
+    message("OK.")
     return(TRUE)
   })
 }
 
 ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
-                      list_fun = ListPopularRepos, ...) {
+                      list_fun = ListRandomRepos, ...) {
   # Run queries in small batch, just in case something went wrong
   # have less issues and easier to debug.
   start <- offset + 1
   while (offset < n_max) {
     repos <- list_fun(offset, perpage) 
+    if (!is_atomic(repos)) {
+      repos <- repos$repo
+    }
     if (is.null(repos) || length(repos) == 0) {
       message("")
       message("No more. Stop.")
@@ -96,3 +107,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   message(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
 
+ScrapeAll(n_max = 10)

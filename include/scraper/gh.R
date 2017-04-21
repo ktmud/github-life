@@ -49,7 +49,7 @@ GetAToken <- function(tried = list()) {
   token$token
 }
 
-SaveRateLimit <- function(token, res = NULL, response = NULL) {
+.SaveRateLimit <- function(token, res = NULL, response = NULL) {
   if (is.null(response)) {
     response <- attr(res, "response")
   }
@@ -88,6 +88,10 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   # Args:
   #   verbose - whethere to print debug messages
   # All others arguments are the same as `gh`
+  # Return:
+  #   NULL - when resource is not available
+  #       (either deleted or blocked by github)
+  #   otherwise just a `gh_list` object that's basically a json
   
   args <- list(...)
   # default limit is Inf
@@ -106,7 +110,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     err_full <<- x
     if (is.list(x$headers)) {
       err <<- x$headers$status
-      SaveRateLimit(token, response = x$headers)
+      .SaveRateLimit(token, response = x$headers)
     } else {
       err <<- x
     }
@@ -120,18 +124,18 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     err <- as.character(err)
     if (err %in% c("404", "404 Not Found")) {
       # message("Not Found")
-      return(NULL)
+      return()
     }
     if (err == "451") {
       # message("Resource Blocked")
-      return(NULL)
+      return()
     }
     # if 403, retry
     if (err == "403 Forbidden") {
       # if we see 403, but there are still remaining requests
       # then this is the repo's fault, just return non data for it
       if (tokens[[token]]$remaining > 0) {
-        return(NULL)
+        return()
       } 
       # all tokens tried
       if (retry_count > length(tokens)) {
@@ -149,7 +153,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   while (!is.null(.limit) && length(res) < .limit && gh_has_next(res)) {
     if (verbose) message("Fetching: ", next_page(res))
     # save rate limit first
-    SaveRateLimit(token, res)
+    .SaveRateLimit(token, res)
     # get a new token
     new_token <- GetAToken()
     if (new_token != token) {
@@ -165,14 +169,44 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   }
   
   # save rate limit for the last page request
-  SaveRateLimit(token, res)
+  .SaveRateLimit(token, res)
   
   if (!is.null(.limit) && length(res) > .limit) {
     res_attr <- attributes(res)
     res <- res[seq_len(.limit)]
     attributes(res) <- res_attr
   }
-  
   res
 }
 
+.ScrapeAndSave <- function(category, scraper) {
+  # Generate a function to scrape and save to a local file
+  # Return:
+  #  a scraper function that returns
+  #  if file exists
+  #    -1
+  #  else if resource unavailable on github
+  #    NULL
+  #  else
+  #    number of records scraped
+  #  whose first two parameters will always be `repo` and `skip_existing`
+  return(function(repo, skip_existing = TRUE, ...) {
+    fpath <- fname(repo, category)
+    fsize <- file.size(fpath)
+    # if ths file exists and size is not zero, skip
+    if (skip_existing && !is.na(fsize) && fsize != 0) {
+      return(-1)
+    }
+    dat <- scraper(repo, ...)
+    # return NULL if resource not available
+    if (is.null(dat)) return()
+    # only save data when there is data
+    n <- nrow(dat)
+    if (n > 0) {
+      # last_dat <<- dat
+      # last_path <<- fpath
+      write_csv(dat, fpath)
+    }
+    nrow(dat)
+  })
+}

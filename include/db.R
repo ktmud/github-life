@@ -22,9 +22,8 @@ RepoExists.old <- function(fullname, tname = "g_issues") {
   }
   nrow(res) == 1
 }
-
-RepoExists <- function(fullname, in_table = "g_issues") {
-  # Check whether repo existed locally
+RepoExistsInTable <- function(fullname, in_table = "g_issues") {
+  # Check whether repo exists in a database table
   res <- dbGetQuery(db$con, sprintf(
     "SELECT 1 FROM %s WHERE repo = %s LIMIT 1",
     dbQuoteIdentifier(db$con, in_table),
@@ -32,7 +31,6 @@ RepoExists <- function(fullname, in_table = "g_issues") {
   ))
   nrow(res) == 1
 }
-  
 SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
   # remove existing data then save the latest data to database
   # Args:
@@ -45,10 +43,14 @@ SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
   ids <- value$id
   name_q <- dbQuoteIdentifier(db$con, name)
   id_field_q <- dbQuoteIdentifier(db$con, id_field)
-  dbExecute(db$con, sprintf("DELETE FROM %s WHERE %s IN(%s)",
-                            name_q, id_field_q,
-                            str_c(ids, collapse = ", ")))
   tryCatch({
+    dbExecute(db$con,
+              sprintf(
+                "DELETE FROM %s WHERE %s IN(%s)",
+                name_q,
+                id_field_q,
+                str_c(ids, collapse = ", ")
+              ))
     dbWriteTable(db$con, name, value, append = TRUE)
   }, error = function(e) {
     if (retry_count > 2) {
@@ -61,13 +63,11 @@ SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
   })
   return(TRUE)
 }
-
-# === For checking of data integerity --------------------
 ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
   # List the Top N most popular repos
   # Args:
   #   offset - skip how many repos
-  res <- dbGetQuery(db$con, sprintf(
+  dbGetQuery(db$con, sprintf(
     "
     SELECT `repo`, `n_watchers` FROM `popular_projects` %s
     LIMIT %s OFFSET %s
@@ -75,7 +75,6 @@ ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
     ifelse(order, "ORDER BY `n_watchers`", ""),
     limit, offset
   ))
-  res$repo
 }
 
 ListRandomRepos <- function(offset = 0, limit = 5, seed = 1984) {
@@ -84,13 +83,24 @@ ListRandomRepos <- function(offset = 0, limit = 5, seed = 1984) {
   # Args:
   #  seed - the seed for randomize the sample
   
-  # get 50,000 popular repos, although the actual total
-  # number is just 36,000 somthing
-  all_repos <- ListPopularRepos(limit = 50000, order = FALSE)
+  # set a seed so the result can be repeatable
   set.seed(seed)
-  # shuffle the order based on the `seed`
-  all_repos <- sample(all_repos)
-  all_repos[(offset+1):(offset+limit)]
+  repos <- sample_n(kAllRepos, nrow(kAllRepos))
+  repos[(offset+1):min(nrow(repos), offset+limit), ]
+}
+
+# === For checking of data integerity --------------------
+ListExistingRepos <- function(offset = 0, limit = 5) {
+  dbGetQuery(db$con, sprintf(
+    "
+    SELECT `repo`, `n_watchers` FROM `popular_projects` AS t1
+    WHERE EXISTS (
+      SELECT DISTINCT(repo) as repo FROM `g_issues` AS `t2`
+      WHERE (t1.repo = t2.repo)
+    )
+    LIMIT %s OFFSET %s
+    ", limit, offset
+  ))
 }
 
 ListNoIssueRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
@@ -105,7 +115,7 @@ ListNoIssueRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
       compute(tname, temporary = FALSE)
   }
   s <- sprintf("SELECT * FROM %s LIMIT %s OFFSET %s", tname, limit, offset)
-  dbGetQuery(db$con, s)$repo
+  dbGetQuery(db$con, s)
 }
 ListNoIssueEventRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
   # List repos without any issue events
@@ -125,6 +135,5 @@ ListNoIssueEventRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
       compute(tname, temporary = FALSE)
   }
   s <- sprintf("SELECT * FROM %s LIMIT %s OFFSET %s", tname, limit, offset)
-  dbGetQuery(db$con, s)$repo
+  dbGetQuery(db$con, s)
 }
-

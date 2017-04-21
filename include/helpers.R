@@ -1,7 +1,9 @@
-kDataDir <- "~/github_data/"
-
 # When we need to save data as a file
 fname <- function(repo, category, ext = "csv") {
+  # rename because of existing data
+  # if (category == "contributors") {
+  #   category = "contributions"
+  # }
   dname <- str_c(kDataDir, category)
   if (!dir.exists(dname)) {
     dir.create(dname, recursive = TRUE)
