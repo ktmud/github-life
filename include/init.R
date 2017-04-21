@@ -22,8 +22,8 @@ if (exists("db")) {
 if (!db.ok) {
   db <- src_mysql(
     dbname = Sys.getenv("MYSQL_DBNAME"),
-    # host = "localhost",
-    host = Sys.getenv("MYSQL_HOST"),
+    host = "localhost",
+    # host = Sys.getenv("MYSQL_HOST"),
     port = as.integer(Sys.getenv("MYSQL_PORT")),
     user = Sys.getenv("MYSQL_USER"),
     password = Sys.getenv("MYSQL_PASSWD")
@@ -38,6 +38,6 @@ if (!db.ok) {
   dbExecute(db$con, "SET NAMES utf8mb4")
 }
 
-kDataDir <- "~/github_data/"
-# cache all available repos in global memory
-kAllRepos <- ListPopularRepos(limit = 60000, order = FALSE)
+kDataDir <- "/srv/github_data/"
+# cache all available repos in global memory (this might be faster than you thought)
+kAllRepos <- read_csv(str_c(kDataDir, "popular_repos.csv"))

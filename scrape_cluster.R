@@ -5,7 +5,6 @@ library(future)
 library(parallel)
 
 source("include/init.R")
-
 if (exists("cl")) stopCluster(cl)
 
 n_wokers <- 5
@@ -43,8 +42,8 @@ f <- list()
 
 cl_cleanup <- function() {
   v <- lapply(f, FUN = function(x) if (!is.null(x)) value(x))
+  Sys.sleep(4)
   stopCluster(cl)
-  Sys.sleep(5)
 }
 
 # split into small chunks is more efficient

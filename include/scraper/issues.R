@@ -12,9 +12,9 @@
 #     distinct()
 #   SaveToTable("users", users)
 # }
-ScrapeIssues <- .ScrapeAndSave("issues", function(repo, ...) {
+ScrapeIssues <- .ScrapeAndSave("issues", function(repo, state = "all", ...) {
   # Scrape all issues of a repo
-  dat <- gh("/repos/:repo/issues", repo = repo, ...)
+  dat <- gh("/repos/:repo/issues", repo = repo, state = state, ...)
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
