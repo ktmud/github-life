@@ -210,6 +210,6 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # last_path <<- fpath
       write_csv(dat, fpath)
     }
-    nrow(dat)
+    return(n)
   })
 }
