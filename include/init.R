@@ -10,6 +10,11 @@ library(RMySQL)
 
 source("include/db.R")
 
+# change this to the directory you want
+kDataDir <- "/srv/github_data/"
+# cache all available repos in global memory (this might be faster than you thought)
+kAllRepos <- read_csv("data/popular_repos.csv")
+
 db.ok <- FALSE
 # close existing connection
 if (exists("db")) {
@@ -38,6 +43,3 @@ if (!db.ok) {
   dbExecute(db$con, "SET NAMES utf8mb4")
 }
 
-kDataDir <- "/srv/github_data/"
-# cache all available repos in global memory (this might be faster than you thought)
-kAllRepos <- read_csv(str_c(kDataDir, "popular_repos.csv"))
