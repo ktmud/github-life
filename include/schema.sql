@@ -91,8 +91,8 @@ CREATE TABLE IF NOT EXISTS `g_issues` (
 `comments` INT(11) NOT NULL DEFAULT '0',
 `closed_at` TIMESTAMP NULL,
 `updated_at` TIMESTAMP NULL,
-`title` TEXT CHARACTER SET 'utf8mb4',
-`body` TEXT CHARACTER SET 'utf8mb4',
+`title` TEXT CHARACTER SET utf8mb4,
+`body` TEXT CHARACTER SET utf8mb4,
 PRIMARY KEY (`id`)  COMMENT '',
 KEY `is_pull_request` (`is_pull_request`),
 KEY `user_id` (`user_id`),
@@ -155,6 +155,21 @@ KEY `repo` (`repo`)
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
 DEFAULT CHARACTER SET = utf8;
+
+DROP TABLE IF EXISTS `g_stargazers`;
+CREATE TABLE g_stargazers (
+`repo` VARCHAR(141) NOT NULL,  -- extraneous column
+`user_id` INT(11) NOT NULL,
+`user_login` VARCHAR(40) NOT NULL,
+`starred_at` TIMESTAMP NOT NULL DEFAULT 0,
+KEY `user_id` (`user_id`),
+KEY `user_login` (`user_login`),
+KEY `repo` (`repo`) 
+) ENGINE = INNODB
+ROW_FORMAT = COMPRESSED
+KEY_BLOCK_SIZE = 1
+DEFAULT CHARACTER SET = utf8;
+
 
 -- some other useful snippets
 -- determine the maximum length of user login

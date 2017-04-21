@@ -2,8 +2,9 @@ source("include/init.R")
 source("include/helpers.R")
 source("include/db.R")
 source("include/scraper/gh.R")
-source("include/scraper/issues.R")
 source("include/scraper/stats.R")
+source("include/scraper/issues.R")
+source("include/scraper/stargazers.R")
 
 pad <- function(x, n = 4, side = "left") {
   # pad numbers for better messaging
@@ -20,7 +21,8 @@ FetchAll <- function(repos,
                      scrape_stats = TRUE,
                      scrape_issues = TRUE,
                      scrape_issue_events = TRUE,
-                     scrape_issue_comments = TRUE, ...) {
+                     scrape_issue_comments = TRUE,
+                     scrape_stargazers = TRUE, ...) {
   # Fetch issues, issue events for a list of repos
   # Args:
   #   repos - a vector of repository names
@@ -40,9 +42,9 @@ FetchAll <- function(repos,
         return(FALSE)
       } else if (n == -1) {
         # -1 means data already existed
-        msg("xxxx weeks  ")
+        msg("xxx w   ")
       } else {
-        msg(pad(n), " weeks  ")
+        msg(pad(n, 3), " w  ")
       }
     }
     if (scrape_issues) {
@@ -51,9 +53,9 @@ FetchAll <- function(repos,
         msg("(X) resource unavailable.  ", appendLF = TRUE)
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx issues  ")
+        msg("xxxx isu  ")
       } else {
-        msg(pad(n), " issues  ")
+        msg(pad(n), " isu  ")
       }
     }
     if (scrape_issue_events) {
@@ -62,9 +64,9 @@ FetchAll <- function(repos,
         msg("(X) resource unavailable.  ", appendLF = TRUE)
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx ievents  ")
+        msg("xxxx i_evt  ")
       } else {
-        msg(pad(n), " ievents  ")
+        msg(pad(n), " i_evt  ")
       }
     }
     if (scrape_issue_comments) {
@@ -73,9 +75,20 @@ FetchAll <- function(repos,
         msg(" (X) resource unavailable.  ", appendLF = TRUE)
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx icomments  ")
+        msg("xxxx i_cmt  ")
       } else {
-        msg(pad(n), " icomments  ")
+        msg(pad(n), " i_cmt  ")
+      }
+    }
+    if (scrape_stargazers) {
+      n <- ScrapeStargazers(repo, skip_existing)
+      if (is.null(n)) {
+        msg(" (X) resource unavailable.  ", appendLF = TRUE)
+        return(FALSE)
+      } else if (n == -1) {
+        msg("xxxx stars  ")
+      } else {
+        msg(pad(n), " stars  ")
       }
     }
     message("OK.")
@@ -106,5 +119,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   message("")
   message(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-
 ScrapeAll(n_max = 10)
