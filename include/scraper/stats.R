@@ -20,6 +20,8 @@ ScrapeContributors <- .ScrapeAndSave("contributors", function(repo, ...) {
     do.call(rbind, .)
   if (ncol(dat) == 5) {
     colnames(dat) <- c("week", "additions", "deletes", "commits", "author")
+    # set real number of weeks as an attribute, so we can use it for logging
+    attr(dat, "real_n") <- nrow(dat) / length(unique(dat$author))
   }
   dat
 })
@@ -37,6 +39,6 @@ ScrapePunchCard <- .ScrapeAndSave("punch_card", function(repo, ...) {
 
 ScrapeStats <- function(repo, ...) {
   # Return: number of weeks from the punchcard
-  ScrapeContributors(repo, ...)
   ScrapePunchCard(repo, ...)
+  ScrapeContributors(repo, ...)
 }

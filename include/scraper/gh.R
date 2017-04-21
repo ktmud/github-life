@@ -201,7 +201,10 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     # return NULL if resource not available
     if (is.null(dat)) return()
     # only save data when there is data
-    n <- nrow(dat)
+    n <- attr(dat, "real_n")
+    if (is.null(n)) {
+      n <- nrow(dat)
+    }
     if (n > 0) {
       # last_dat <<- dat
       # last_path <<- fpath
