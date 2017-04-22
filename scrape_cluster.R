@@ -19,10 +19,13 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
   parse(
     text = sprintf(
       '
-      logfile <- paste0("/tmp/github-scrape-%s", ".log")
-      sink(file(logfile, open = "a"))
-      source("scrape.R")
-      .GlobalEnv$n_workers <- %s  # this is needed for token control
+      # dont reload if data already loaded
+      if (!exists("ScrapeAll")) {
+        logfile <- paste0("/tmp/github-scrape-%s", ".log")
+        sink(file(logfile, open = "a"))
+        source("scrape.R")
+        .GlobalEnv$n_workers <- %s  # this is needed for token control
+      }
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, scrape_stats = TRUE)
       ',
       i %% n_workers,
@@ -32,19 +35,19 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
       list_fun
     )
   )
-}
+  }
 
 f <- list()
 cl_cleanup <- function() {
   v <- lapply(f, FUN = function(x) if (!is.null(x)) value(x))
-  Sys.sleep(4)
+  Sys.sleep(5)
   stopCluster(cl)
 }
 
-# split into small chunks is more efficient
 n_total <- nrow(kAllRepos)
-# n_total <- 2000
-partition <- seq(0, n_total + 1, 100)
+# split into small chunks to avoid being blocked by
+# very large repos
+partition <- seq(0, n_total + 1, 10)
 
 start_time <- Sys.time()
 
@@ -65,7 +68,7 @@ for (i in seq(1, length(partition) - 1)) {
     setDefaultCluster(cl)
     start_time <- Sys.time()
   }
-  Sys.sleep(2)
+  Sys.sleep(1)
 }
 
 cl_cleanup()
