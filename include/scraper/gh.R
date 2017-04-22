@@ -112,6 +112,8 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   err_full <- NULL
   tryCatch({
     res <- do.call(gh::gh, args)
+    # save rate limit whenever we had a response
+    .SaveRateLimit(token, res)
   }, error = function(x) {
     err_full <<- x
     if (is.list(x$headers)) {
@@ -121,8 +123,6 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       err <<- x
     }
   })
-  # save rate limit whenever we had a response
-  .SaveRateLimit(token, res)
   
   # for debug
   # gh_err <<- err_full
