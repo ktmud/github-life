@@ -179,7 +179,16 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       attr(res, ".send_headers") <- headers
       token <- new_token
     }
-    res2 <- gh::gh_next(res)
+    res2 <- NULL
+    tryCatch({
+      res2 <- gh::gh_next(res)
+    }, error = warning)
+    if (retry_count < length(tokens) && is.null(res2)) {
+      # this will go back to the beginning of the loop
+      # and try to get a new token
+      retry_count <- retry_count + 1
+      next
+    }
     res3 <- c(res, res2)
     attributes(res3) <- attributes(res2)
     res <- res3
