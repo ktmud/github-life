@@ -8,6 +8,7 @@ tokens[1:length(tokens)] <- map(.tokens, function(x) {
   list(token = x)
 })
 token_i <- 0  # index of current token in use
+n_workers <- 1  # default number of workers is 1, can be changed for each session
 
 GetAToken <- function(tried = list()) {
   # Get a new token to use. Will check rate limit automatically.
@@ -26,7 +27,8 @@ GetAToken <- function(tried = list()) {
   tried[[token$token]] <- token
   
   # if this token needs to wait, try another one
-  if (!is.null(token$remaining) && token$remaining < length(tokens) * 1.5 &&
+  if (!is.null(token$remaining) &&
+      token$remaining < length(tokens) * n_workers &&
       token$wait_until > Sys.time()) {
     # if already tried the last one
     # get the one with minimal wait time and do the wait
@@ -130,7 +132,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # message("Resource Blocked")
       return()
     }
-    if (err == "403 Forbidden") {
+    if (err %in% c("403", "403 Forbidden")) {
       # if we see 403, but there are still remaining requests
       # then this is the repo's fault, just return non data for it
       if (tokens[[token]]$remaining > 0) {
@@ -143,6 +145,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       if (retry_count > length(tokens)) {
         stop(err)
       }
+      # each retry will use a new token
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
     }
     # other types of errors, we let it fail, but will

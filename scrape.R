@@ -59,9 +59,9 @@ FetchAll <- function(repos,
         msg("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        cat("x l | ")
+        cat("x lang | ")
       } else {
-        cat(n, "l | ")
+        cat(n, "lang | ")
       }
     }
     if (scrape_issues) {

@@ -22,9 +22,11 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
       logfile <- paste0("/tmp/github-scrape-%s", ".log")
       sink(file(logfile, open = "a"), type = "output")
       source("scrape.R")
+      n_wokers <- %s  # this is needed for token control
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, scrape_stats = TRUE)
       ',
       i %% n_wokers,
+      n_workers,
       partition[i],
       partition[i + 1],
       list_fun
