@@ -25,3 +25,5 @@ for category in `ls ./`; do
   # skip the first line of all files under in the category directory
   tail -q -n +2 "${files[0]}" >> "/tmp/github__${category}.csv"
 done
+
+

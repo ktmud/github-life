@@ -167,6 +167,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       cat("ERROR:", err, "\n")
       cat("Retry:", retry_count + 1, "\n")
       # each retry will use a new token
+      Sys.sleep(10)
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
     }
     # other types of errors, we let it fail, but will
@@ -188,7 +189,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     }
     res2 <- NULL
     tryCatch({
-      Sys.sleep(0.1)  # github might complain if we do this too fast
+      Sys.sleep(0.2)  # github might complain if we do this too fast
       res2 <- gh::gh_next(res)
     }, error = warning)
     if (retry_count < length(tokens) && is.null(res2)) {
