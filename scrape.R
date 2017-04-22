@@ -11,8 +11,11 @@ pad <- function(x, n = 4, side = "left") {
   # pad numbers for better messaging
   str_pad(x, n, side = side)
 }
-msg <- function(x, ..., appendLF = FALSE) {
-  message(x, ..., appendLF = appendLF)
+msg <- function(..., appendLF = TRUE) {
+  cat(...)
+  if (appendLF) {
+    cat("\n")
+  }
 }
   
 # Start Fetching Data -----------
@@ -35,77 +38,77 @@ FetchAll <- function(repos,
   names(repos) <- repos
   walk(repos, function(repo) {
     # Begin scraping ...
-    message("> ", repo)
-    msg("  ")
+    msg("$", repo)
+    cat("  ")
     if (scrape_stats) {
       n <- ScrapeStats(repo, skip_existing)
       if (is.null(n)) {
-        message("(X) resource unavailable.  ")
+        msg("(X) resource unavailable.  ")
         # don't scrape others if the resource is known unavailable
         return(FALSE)
       } else if (n == -1) {
         # -1 means data already existed
-        msg("xxx w | ")
+        cat("xxx w | ")
       } else {
-        msg(pad(n, 3), " w | ")
+        cat(pad(n, 3), "w | ")
       }
     }
     if (scrape_languages) {
       n <- ScrapeLanguages(repo, skip_existing)
       if (is.null(n)) {
-        message("(X) resource unavailable.  ")
+        msg("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("x l | ")
+        cat("x l | ")
       } else {
-        msg(n, " l | ")
+        cat(n, "l | ")
       }
     }
     if (scrape_issues) {
       n <- ScrapeIssues(repo, skip_existing)
       if (is.null(n)) {
-        message("(X) resource unavailable.  ")
+        msg("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx isu | ")
+        cat("xxxx isu | ")
       } else {
-        msg(pad(n), " isu | ")
+        cat(pad(n), "isu | ")
       }
     }
     if (scrape_issue_events) {
       n <- ScrapeIssueEvents(repo, skip_existing)
       if (is.null(n)) {
-        message("(X) resource unavailable.  ")
+        msg("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx i_e | ")
+        cat("xxxx i_e | ")
       } else {
-        msg(pad(n), " i_e | ")
+        cat(pad(n), "i_e | ")
       }
     }
     if (scrape_issue_comments) {
       n <- ScrapeIssueComments(repo, skip_existing)
       if (is.null(n)) {
-        message("(X) resource unavailable.  ")
+        msg("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx i_c | ")
+        cat("xxxx i_c | ")
       } else {
-        msg(pad(n), " i_c | ")
+        cat(pad(n), "i_c | ")
       }
     }
     if (scrape_stargazers) {
       n <- ScrapeStargazers(repo, skip_existing)
       if (is.null(n)) {
-        message("(X) resource unavailable.  ")
+        msg("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx * | ")
+        cat("xxxx * | ")
       } else {
-        msg(pad(n), " * | ")
+        cat(pad(n), "* | ")
       }
     }
-    message("OK.")
+    msg("OK.")
     return(TRUE)
   })
 }
@@ -121,16 +124,16 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
       repos <- repos$repo
     }
     if (is.null(repos) || length(repos) == 0) {
-      message("")
-      message("No more. Stop.")
+      msg("")
+      msg("No more. Stop.")
       break
     }
-    message("")
-    message(sprintf("Scraping %s-%s of %s...", offset + 1, offset + perpage, n_max))
+    msg("")
+    msg(sprintf("Scraping %s-%s of %s...", offset + 1, offset + perpage, n_max))
     FetchAll(repos, ...)
     offset <- offset + perpage
   }
-  message("")
-  message(sprintf("Batch %s ~ %s Done.", start, n_max))
+  msg("")
+  msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
- ScrapeAll(offset = 250, n_max = 500)
+# ScrapeAll(offset = 250, n_max = 500)

@@ -6,7 +6,7 @@ library(parallel)
 
 source("include/init.R")
 
-n_wokers <- 5
+n_wokers <- 6
 
 if (exists("cl")) {
   stopCluster(cl)
@@ -20,7 +20,7 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
     text = sprintf(
       '
       logfile <- paste0("/tmp/github-scrape-%s", ".log")
-      sink(file(logfile, open = "a"), type = "message")
+      sink(file(logfile, open = "a"), type = "output")
       source("scrape.R")
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, scrape_stats = TRUE)
       ',
@@ -62,5 +62,5 @@ for (i in seq(1, length(partition) - 1)) {
 
 cl_cleanup()
 
-# cleanup old log files
+# cleanup log files
 unlink("/tmp/github-scrape-*.log")
