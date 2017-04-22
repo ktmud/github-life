@@ -8,7 +8,6 @@ tokens[1:length(tokens)] <- map(.tokens, function(x) {
   list(token = x)
 })
 token_i <- 0  # index of current token in use
-n_workers <- 1  # default number of workers is 1, can be changed for each session
 
 GetAToken <- function(tried = list()) {
   # Get a new token to use. Will check rate limit automatically.
@@ -25,6 +24,11 @@ GetAToken <- function(tried = list()) {
   token_i <<- token_i + 1
   token <- tokens[[token_i]]
   tried[[token$token]] <- token
+  
+  n_workers <- .GlobalEnv$n_workers
+  if (is.null(n_workers)) {
+    n_workers <- 1
+  }
   
   # if this token needs to wait, try another one
   if (!is.null(token$remaining) &&
@@ -117,7 +121,12 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       err <<- x
     }
   })
-  gh_err <<- err_full
+  # save rate limit whenever we had a response
+  .SaveRateLimit(token, res)
+  
+  # for debug
+  # gh_err <<- err_full
+  
   # handle exceptions
   if (!is.null(err)) {
     # Acceptable failures returns NULL
@@ -157,8 +166,6 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   # check rate limit here
   while (!is.null(.limit) && length(res) < .limit && gh_has_next(res)) {
     if (verbose) message("Fetching: ", next_page(res))
-    # save rate limit first
-    .SaveRateLimit(token, res)
     # get a new token
     new_token <- GetAToken()
     if (new_token != token) {
@@ -171,10 +178,8 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     res3 <- c(res, res2)
     attributes(res3) <- attributes(res2)
     res <- res3
+    .SaveRateLimit(token, res)
   }
-  
-  # save rate limit for the last page request
-  .SaveRateLimit(token, res)
   
   if (!is.null(.limit) && length(res) > .limit) {
     res_attr <- attributes(res)

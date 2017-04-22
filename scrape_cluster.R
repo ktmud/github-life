@@ -6,12 +6,12 @@ library(parallel)
 
 source("include/init.R")
 
-n_wokers <- 6
+n_workers <- 6
 
 if (exists("cl")) {
   stopCluster(cl)
 } else {
-  cl <- makeCluster(n_wokers)
+  cl <- makeCluster(n_workers)
   plan(cluster, workers = cl)
 }
 
@@ -20,12 +20,12 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
     text = sprintf(
       '
       logfile <- paste0("/tmp/github-scrape-%s", ".log")
-      sink(file(logfile, open = "a"), type = "output")
+      sink(file(logfile, open = "a"))
       source("scrape.R")
-      n_wokers <- %s  # this is needed for token control
+      .GlobalEnv$n_workers <- %s  # this is needed for token control
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, scrape_stats = TRUE)
       ',
-      i %% n_wokers,
+      i %% n_workers,
       n_workers,
       partition[i],
       partition[i + 1],
@@ -43,7 +43,7 @@ cl_cleanup <- function() {
 
 # split into small chunks is more efficient
 n_total <- nrow(kAllRepos)
-n_total <- 2000
+# n_total <- 2000
 partition <- seq(0, n_total + 1, 100)
 
 start_time <- Sys.time()
@@ -61,7 +61,7 @@ for (i in seq(1, length(partition) - 1)) {
     # were blocked by a very large repo.
     message("Restart a new cluster.. so to release some memory.")
     cl_cleanup()
-    cl <- makeCluster(n_wokers)
+    cl <- makeCluster(n_workers)
     setDefaultCluster(cl)
     start_time <- Sys.time()
   }
