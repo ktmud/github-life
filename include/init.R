@@ -13,7 +13,9 @@ source("include/db.R")
 # change this to the directory you want
 kDataDir <- "/srv/github_data/"
 # cache all available repos in global memory (this might be faster than you thought)
-kAllRepos <- read_csv("data/popular_repos.csv")
+if (!exists("kAllRepos")) {
+  kAllRepos <- read_csv("data/popular_repos.csv") 
+}
 
 db.ok <- FALSE
 # close existing connection
@@ -42,4 +44,3 @@ if (!db.ok) {
   # may complain
   dbExecute(db$con, "SET NAMES utf8mb4")
 }
-

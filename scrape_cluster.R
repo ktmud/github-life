@@ -42,7 +42,7 @@ cl_cleanup <- function() {
 # split into small chunks is more efficient
 n_total <- nrow(kAllRepos)
 n_total <- 2000
-partition <- seq(0, n_total + 1, 50)
+partition <- seq(0, n_total + 1, 20)
 for (i in seq(1, length(partition) - 1)) {
   myexp <- GenExpression(i, partition)
   # myexp <- GenExpression(i, partition, "ListPopularRepos")

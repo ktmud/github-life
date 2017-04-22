@@ -5,6 +5,7 @@ source("include/scraper/gh.R")
 source("include/scraper/stats.R")
 source("include/scraper/issues.R")
 source("include/scraper/stargazers.R")
+source("include/scraper/languages.R")
 
 pad <- function(x, n = 4, side = "left") {
   # pad numbers for better messaging
@@ -19,6 +20,7 @@ FetchAll <- function(repos,
                      state = "all",
                      skip_existing = TRUE,
                      scrape_stats = TRUE,
+                     scrape_languages = TRUE,
                      scrape_issues = TRUE,
                      scrape_issue_events = TRUE,
                      scrape_issue_comments = TRUE,
@@ -33,62 +35,74 @@ FetchAll <- function(repos,
   names(repos) <- repos
   walk(repos, function(repo) {
     # Begin scraping ...
-    msg(pad(str_trunc(repo, 28), 30, side = "right"))
+    message("> ", repo)
+    msg("  ")
     if (scrape_stats) {
       n <- ScrapeStats(repo, skip_existing)
       if (is.null(n)) {
-        msg("(X) resource unavailable.  ", appendLF = TRUE)
+        message("(X) resource unavailable.  ")
         # don't scrape others if the resource is known unavailable
         return(FALSE)
       } else if (n == -1) {
         # -1 means data already existed
-        msg("xxx w   ")
+        msg("xxx w | ")
       } else {
-        msg(pad(n, 3), " w  ")
+        msg(pad(n, 3), " w | ")
+      }
+    }
+    if (scrape_languages) {
+      n <- ScrapeLanguages(repo, skip_existing)
+      if (is.null(n)) {
+        message("(X) resource unavailable.  ")
+        return(FALSE)
+      } else if (n == -1) {
+        msg("x l | ")
+      } else {
+        msg(n, " l | ")
       }
     }
     if (scrape_issues) {
       n <- ScrapeIssues(repo, skip_existing)
       if (is.null(n)) {
-        msg("(X) resource unavailable.  ", appendLF = TRUE)
+        message("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx isu  ")
+        msg("xxxx isu | ")
       } else {
-        msg(pad(n), " isu  ")
+        msg(pad(n), " isu | ")
       }
     }
     if (scrape_issue_events) {
       n <- ScrapeIssueEvents(repo, skip_existing)
       if (is.null(n)) {
-        msg("(X) resource unavailable.  ", appendLF = TRUE)
+        message("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx i_evt  ")
+        msg("xxxx i_e | ")
       } else {
-        msg(pad(n), " i_evt  ")
+        msg(pad(n), " i_e | ")
       }
     }
     if (scrape_issue_comments) {
       n <- ScrapeIssueComments(repo, skip_existing)
       if (is.null(n)) {
-        msg(" (X) resource unavailable.  ", appendLF = TRUE)
+        message("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx i_cmt  ")
+        msg("xxxx i_c | ")
       } else {
-        msg(pad(n), " i_cmt  ")
+        msg(pad(n), " i_c | ")
       }
     }
     if (scrape_stargazers) {
       n <- ScrapeStargazers(repo, skip_existing)
       if (is.null(n)) {
-        msg(" (X) resource unavailable.  ", appendLF = TRUE)
+        message("(X) resource unavailable.  ")
         return(FALSE)
       } else if (n == -1) {
-        msg("xxxx stars  ")
+        msg("xxxx * | ")
       } else {
-        msg(pad(n), " stars  ")
+        msg(pad(n), " * | ")
       }
     }
     message("OK.")
@@ -119,4 +133,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   message("")
   message(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-# ScrapeAll(offset = 250, n_max = 500)
+ ScrapeAll(offset = 250, n_max = 500)
