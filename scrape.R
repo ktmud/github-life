@@ -2,10 +2,11 @@ source("include/init.R")
 source("include/helpers.R")
 source("include/db.R")
 source("include/scraper/gh.R")
+source("include/scraper/repo.R")
+source("include/scraper/languages.R")
 source("include/scraper/stats.R")
 source("include/scraper/issues.R")
 source("include/scraper/stargazers.R")
-source("include/scraper/languages.R")
 
 pad <- function(x, n = 4, side = "left") {
   # pad numbers for better messaging
@@ -22,8 +23,8 @@ msg <- function(..., appendLF = TRUE) {
 FetchAll <- function(repos,
                      state = "all",
                      skip_existing = TRUE,
-                     scrape_stats = TRUE,
                      scrape_languages = TRUE,
+                     scrape_stats = TRUE,
                      scrape_issues = TRUE,
                      scrape_issue_events = TRUE,
                      scrape_issue_comments = TRUE,
@@ -38,21 +39,20 @@ FetchAll <- function(repos,
   names(repos) <- repos
   walk(repos, function(repo) {
     # Begin scraping ...
-    msg("$", repo)
-    cat("  ")
-    if (scrape_stats) {
-      n <- ScrapeStats(repo, skip_existing)
-      if (is.null(n)) {
-        msg("(X) resource unavailable.  ")
-        # don't scrape others if the resource is known unavailable
-        return(FALSE)
-      } else if (n == -1) {
-        # -1 means data already existed
-        cat("xxx w | ")
-      } else {
-        cat(pad(n, 3), "w | ")
-      }
+    cat("$", pad(str_trunc(repo, 45), 45, "right"))
+    # always scrape repo details
+    n <- ScrapeRepoDetails(repo, skip_existing)
+    if (is.null(n)) {
+      # don't scrape others if the resource is known unavailable
+      cat(pad("(X) GONE .", 13), "\n")
+      return(FALSE)
+    } else if (n == -1) {
+      # -1 means data already existed, do nothing
+      cat(pad(".", 13))
+    } else {
+      cat(pad(n, 5), "stars .")
     }
+    cat("\n  ")
     if (scrape_languages) {
       n <- ScrapeLanguages(repo, skip_existing)
       if (is.null(n)) {
@@ -62,6 +62,18 @@ FetchAll <- function(repos,
         cat("x lang | ")
       } else {
         cat(n, "lang | ")
+      }
+    }
+    if (scrape_stats) {
+      n <- ScrapeStats(repo, skip_existing)
+      if (is.null(n)) {
+        msg("(X) resource unavailable.  ")
+        return(FALSE)
+      } else if (n == -1) {
+        # -1 means data already existed
+        cat("xxx w | ")
+      } else {
+        cat(pad(n, 3), "w | ")
       }
     }
     if (scrape_issues) {
@@ -136,4 +148,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-# ScrapeAll(offset = 500, n_max = 800)
+# ScrapeAll(offset = 0, n_max = 2000)

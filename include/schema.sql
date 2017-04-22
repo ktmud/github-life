@@ -76,10 +76,31 @@ ALTER TABLE `popular_projects`
 -- Prefix "g_" means these are fresh data scraped from Github directly
 -- the ID columns cannot be matched against GHTorrent data,
 -- must unique names such as user.login, and projects.name instead.
+DROP TABLE IF EXISTS `g_projects`;
+CREATE TABLE IF NOT EXISTS `g_projects` (
+`id` INT(11) NOT NULL,
+`owner_id` INT(11) NOT NULL,
+`owner_login` INT(11) NOT NULL,
+`name` VARCHAR(100) NOT NULL,
+`lang` VARCHAR(255) NOT NULL,
+`forks_count` INT(7) NOT NULL DEFAULT 0,
+`stargazers_count` INT(7) NOT NULL DEFAULT 0,
+`size` INT(11) NOT NULL,
+`created_at` TIMESTAMP NOT NULL DEFAULT 0,
+`updated_at` TIMESTAMP NOT NULL DEFAULT 0,
+`pushed_at` TIMESTAMP NOT NULL DEFAULT 0,
+`parent_id` INT(11) NULL,
+`source_id` INT(11) NULL,
+`description` TEXT NOT NULL DEFAULT "",
+) ENGINE = INNODB
+ROW_FORMAT = COMPRESSED
+KEY_BLOCK_SIZE = 1
+DEFAULT CHARACTER SET = utf8;
+
 DROP TABLE IF EXISTS `g_issues`;
 CREATE TABLE IF NOT EXISTS `g_issues` (
 `id` INT(11) NOT NULL,
-`is_pull_request` TINYINT(1) NOT NULL DEFAULT '0',
+`is_pull_request` TINYINT(1) NOT NULL DEFAULT 0,
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
 `user_id` INT(11) NOT NULL,
 -- `user_login` is a dedundent column to make it easier to
@@ -88,23 +109,16 @@ CREATE TABLE IF NOT EXISTS `g_issues` (
 `repo` VARCHAR(141) NOT NULL,
 `state` VARCHAR(10) NOT NULL,
 `number` INT(10) NOT NULL,
-`comments` INT(11) NOT NULL DEFAULT '0',
+`comments` INT(11) NOT NULL DEFAULT 0,
 `closed_at` TIMESTAMP NULL,
 `updated_at` TIMESTAMP NULL,
 `title` TEXT CHARACTER SET utf8mb4,
 `body` TEXT CHARACTER SET utf8mb4,
-PRIMARY KEY (`id`)  COMMENT '',
-KEY `is_pull_request` (`is_pull_request`),
-KEY `user_id` (`user_id`),
-KEY `state` (`state`),
-KEY `repo` (`repo`),
-KEY `created_at` (`created_at`),
-KEY `closed_at` (`closed_at`)
+PRIMARY KEY (`id`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
 DEFAULT CHARACTER SET = utf8;
-
 
 DROP TABLE IF EXISTS `g_users`;
 CREATE TABLE IF NOT EXISTS `g_users` (
@@ -120,17 +134,12 @@ CREATE TABLE g_issue_events (
 `id` INT(11) NOT NULL,
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
 `issue_id` INT(11) NOT NULL,
-`actor_id` INT(11) NOT NULL,
 `event` VARCHAR(30) NOT NULL DEFAULT '',
 `repo` VARCHAR(141) NOT NULL,
--- allow NULL just in case GitHub error is broken
-`actor_login` VARCHAR(40) NOT NULL,
+`actor_id` INT(11) NOT NULL,
+`actor_id` VARCHAR(40) NOT NULL,
 `commit_id` VARCHAR(40) NULL,
-PRIMARY KEY (id),
-KEY `issue_id` (`issue_id`),
-KEY `actor_id` (`actor_id`),
-KEY `actor_login` (`actor_login`),
-KEY `repo__event` (`repo`, `event`) 
+PRIMARY KEY (id)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 2
@@ -146,11 +155,7 @@ CREATE TABLE g_issue_comments (
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
 `updated_at` TIMESTAMP NULL,
 `body` TEXT CHARACTER SET utf8mb4,
-PRIMARY KEY (id),
-KEY `issue_id` (`issue_id`),
-KEY `user_id` (`user_id`),
-KEY `user_login` (`user_login`),
-KEY `repo` (`repo`) 
+PRIMARY KEY (id)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
@@ -161,15 +166,27 @@ CREATE TABLE g_stargazers (
 `repo` VARCHAR(141) NOT NULL,  -- extraneous column
 `user_id` INT(11) NOT NULL,
 `user_login` VARCHAR(40) NOT NULL,
-`starred_at` TIMESTAMP NOT NULL DEFAULT 0,
-KEY `user_id` (`user_id`),
-KEY `user_login` (`user_login`),
-KEY `repo` (`repo`) 
+`starred_at` TIMESTAMP NOT NULL DEFAULT 0
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
 DEFAULT CHARACTER SET = utf8;
 
+-- Add indexes -- do this only after all data were inserted!
+ALTER TABLE `g_stargazers`
+ADD INDEX (`user_id`), (`user_login`), (`repo`) 
+ALGORITHM = INPLACE;
+ALTER TABLE `g_issue_comments`
+ADD INDEX (`issue_id`), (`user_id`), (`repo`), (`user_login`)
+ALGORITHM = INPLACE;
+ALTER TABLE `g_issue_events`
+ADD INDEX (`issue_id`), (`actor_id`), (`actor_login`),
+(`repo`, `event`) 
+ALGORITHM = INPLACE;
+ALTER TABLE `g_issues`
+ADD  INDEX (`repo`), (`state`), (`created_at`), (`closed_at`)
+(`user_id`), (`is_pull_request`)
+ALGORITHM = INPLACE;
 
 -- some other useful snippets
 -- determine the maximum length of user login

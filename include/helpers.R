@@ -19,7 +19,11 @@ parse_datetime <- function(x) {
 }
 
 safe_val <- function(x) {
-  # make sure not NULL value is passed to a vector
-  ifelse(is.null(x), NA, x)
+  # make sure X is not null
+  # Args:
+  #   x - any object
+  #   p - the sub property if any
+  if (is.null(x)) return(NA)
+  return(x)
 }
 
