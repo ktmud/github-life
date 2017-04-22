@@ -20,7 +20,6 @@ SELECT COUNT(1) n_projects, LANGUAGE FROM count_project_watchers
 GROUP BY LANGUAGE
 ORDER BY n_projects DESC;
 
-
 -- find the top 1% popular projects
 DROP TABLE IF EXISTS pop_projects;
 CREATE TABLE pop_projects
@@ -91,7 +90,7 @@ CREATE TABLE IF NOT EXISTS `g_projects` (
 `pushed_at` TIMESTAMP NOT NULL DEFAULT 0,
 `parent_id` INT(11) NULL,
 `source_id` INT(11) NULL,
-`description` TEXT NOT NULL DEFAULT "",
+`description` TEXT CHARACTER SET utf8mb4 NOT NULL DEFAULT '' 
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
@@ -137,7 +136,7 @@ CREATE TABLE g_issue_events (
 `event` VARCHAR(30) NOT NULL DEFAULT '',
 `repo` VARCHAR(141) NOT NULL,
 `actor_id` INT(11) NOT NULL,
-`actor_id` VARCHAR(40) NOT NULL,
+`actor_login` VARCHAR(40) NOT NULL,
 `commit_id` VARCHAR(40) NULL,
 PRIMARY KEY (id)
 ) ENGINE = INNODB
@@ -172,26 +171,42 @@ ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
 DEFAULT CHARACTER SET = utf8;
 
--- Add indexes -- do this only after all data were inserted!
+-- Add indexes =================================
+-- do this only after all data were inserted!
 ALTER TABLE `g_stargazers`
-ADD INDEX (`user_id`), (`user_login`), (`repo`) 
-ALGORITHM = INPLACE;
+  ADD INDEX (`user_id`),
+  ADD INDEX (`user_login`),
+  ADD INDEX (`repo`),
+  ALGORITHM = INPLACE;
+  
 ALTER TABLE `g_issue_comments`
-ADD INDEX (`issue_id`), (`user_id`), (`repo`), (`user_login`)
-ALGORITHM = INPLACE;
+  ADD INDEX (`issue_id`),
+  ADD INDEX (`user_id`),
+  ADD INDEX (`repo`),
+  ADD INDEX (`user_login`),
+  ALGORITHM = INPLACE;
+  
 ALTER TABLE `g_issue_events`
-ADD INDEX (`issue_id`), (`actor_id`), (`actor_login`),
-(`repo`, `event`) 
-ALGORITHM = INPLACE;
+  ADD INDEX (`issue_id`),
+  ADD INDEX (`actor_id`),
+  ADD INDEX (`actor_login`),
+  ADD INDEX (`repo`, `event`),
+  ALGORITHM = INPLACE;
+  
 ALTER TABLE `g_issues`
-ADD  INDEX (`repo`), (`state`), (`created_at`), (`closed_at`)
-(`user_id`), (`is_pull_request`)
-ALGORITHM = INPLACE;
+  ADD INDEX (`repo`),
+  ADD INDEX (`state`),
+  ADD INDEX (`created_at`),
+  ADD INDEX (`closed_at`),
+  ADD INDEX (`user_id`),
+  ADD INDEX (`is_pull_request`),
+  ADD INDEX ALGORITHM = INPLACE;
 
--- some other useful snippets
+-- some other useful stuff ====================
 -- determine the maximum length of user login
 select max(char_length(`login`)) from users;
 select max(char_length(`name`)) from projects;
+
 -- show server configuration
 show variables;
 -- show running connections;

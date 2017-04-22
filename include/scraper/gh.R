@@ -22,37 +22,38 @@ GetAToken <- function(tried = list()) {
     token_i <<- 0
   }
   token_i <<- token_i + 1
-  token <- tokens[[token_i]]
-  tried[[token$token]] <- token
+  tk <- tokens[[token_i]]
+  tried[[tk$token]] <- tk
   
+  # if this token needs to wait, try another one
+  if (.TokenLimitReached(tk)) {
+    # if already tried the last one
+    # get the one with minimal wait time and do the wait
+    if (length(tried) == length(tokens)) {
+      tk <- tried[[which.min(map(tried, function(x) x$wait_until))]]
+      # time difference in seconds
+      wait_secs <- (tk$wait_until - Sys.time()) %>%
+        as.numeric(units = "secs") %>% max(0)
+      cat("\n > rate limit reached, wait for", wait_secs, "secs.")
+      Sys.sleep(wait_secs)
+      # waited enough time, reset this token's wait time
+      tokens[[tk$token]] <<- list(token = tk$token)
+    } else {
+      tk <- tokens[[GetAToken(tried = tried)]]
+    }
+  }
+  # return the string of token in use
+  tk$token
+}
+
+.TokenLimitReached <- function(tk) {
   n_workers <- .GlobalEnv$n_workers
   if (is.null(n_workers)) {
     n_workers <- 1
   }
-  
-  # if this token needs to wait, try another one
-  if (!is.null(token$remaining) &&
-      token$remaining < length(tokens) * n_workers &&
-      token$wait_until > Sys.time()) {
-    # if already tried the last one
-    # get the one with minimal wait time and do the wait
-    if (length(tried) == length(tokens)) {
-      token <- tried[[which.min(map(tried, function(x) x$wait_until))]]
-      # time difference in seconds
-      wait_secs <- (token$wait_until - Sys.time()) %>%
-        as.numeric(units = "secs") %>% max(0)
-      message("")  # An empty new line to separate this message with others
-      message("> rate limit reached, wait for ", wait_secs, " secs.")
-      Sys.sleep(wait_secs)
-      # waited enough time, reset this token's wait time
-      tokens[[token$token]] <<- list(token = token$token)
-    } else {
-      token <- tokens[[GetAToken(tried = tried)]]
-    }
-  }
-  
-  # return the token in use
-  token$token
+  !is.null(tk$remaining) &&
+    tk$remaining <= length(tokens) * (n_workers + 1) &&
+    tk$wait_until > Sys.time()
 }
 
 .SaveRateLimit <- function(token, res = NULL, response = NULL) {
@@ -63,6 +64,10 @@ GetAToken <- function(tried = list()) {
     stop("Must provide response headers")
   }
   remaining <- as.integer(response$`x-ratelimit-remaining`)
+  # XXX: for debug
+  # if (token_i %% 2 == 0) {
+  #   remaining <- 1
+  # }
   wait_until <- as.integer(response$`x-ratelimit-reset`) %>%
     as.POSIXct(origin="1970-01-01", tz = "UTC")
   tokens[[token]] <<- list(
@@ -134,11 +139,11 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     # 451: Blocked
     err <- as.character(err)
     if (err %in% c("404", "404 Not Found")) {
-      # message("Not Found")
+      # cat("Not Found")
       return()
     }
     if (err == "451") {
-      # message("Resource Blocked")
+      # cat("Resource Blocked")
       return()
     }
     if (err %in% c("403", "403 Forbidden")) {
@@ -165,7 +170,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   # we are rewriting this .limit logic because we need to
   # check rate limit here
   while (!is.null(.limit) && length(res) < .limit && gh_has_next(res)) {
-    if (verbose) message("Fetching: ", next_page(res))
+    if (verbose) cat("Fetching:", next_page(res))
     # get a new token
     new_token <- GetAToken()
     if (new_token != token) {

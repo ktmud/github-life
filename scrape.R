@@ -19,6 +19,18 @@ msg <- function(..., appendLF = TRUE) {
   }
 }
 
+cat_dest <- NULL
+if (!is.null(.GlobalEnv$logfile)) {
+  cat_dest <- file(.GlobalEnv$logfile, "a")
+}
+cat <- function(...) {
+  if (!is.null(cat_dest)) {
+    base::cat(..., file = cat_dest)
+  } else {
+    base::cat(...)
+  }
+}
+
 # Start Fetching Data -----------
 FetchAll <- function(repos,
                      state = "all",
@@ -148,4 +160,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-# ScrapeAll(offset = 0, n_max = 2000)
+# ScrapeAll(offset = 690, n_max = 2000)

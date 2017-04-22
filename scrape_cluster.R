@@ -19,12 +19,12 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
   parse(
     text = sprintf(
       '
-      # dont reload if data already loaded
       if (!exists("ScrapeAll")) {
-        logfile <- paste0("/tmp/github-scrape-%s", ".log")
-        sink(file(logfile, open = "a"))
-        source("scrape.R")
+        # dont reload if data already loaded
+        .GlobalEnv$logfile <- paste0("/tmp/github-scrape-%s", ".log")
         .GlobalEnv$n_workers <- %s  # this is needed for token control
+        sink("/dev/null")  # all normal messages will just go to limbo
+        source("scrape.R")
       }
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, scrape_stats = TRUE)
       ',
@@ -68,6 +68,8 @@ for (i in seq(1, length(partition) - 1)) {
     setDefaultCluster(cl)
     start_time <- Sys.time()
   }
+  # Give the process a little time to breath
+  # so to avoid the `sink stack is full` error
   Sys.sleep(1)
 }
 
