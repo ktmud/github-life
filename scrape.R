@@ -1,6 +1,5 @@
 source("include/init.R")
 source("include/helpers.R")
-source("include/db.R")
 source("include/scraper/gh.R")
 source("include/scraper/repo.R")
 source("include/scraper/languages.R")
@@ -160,4 +159,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-# ScrapeAll(offset = 780, n_max = 2000)
+ScrapeAll(offset = 780, n_max = 2000)

@@ -1,8 +1,8 @@
 #
-# SQL schema of additional tables
+# Store scraped data into database.
 #
+source("include/db.R")
 
-# Create Additional table ==============
 schema <- read_file("include/schema.sql") %>% str_split(";\n+")
 
 ExecuteSQL <- function(sql, con) {

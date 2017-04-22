@@ -155,8 +155,10 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
         return()
       } 
     }
-    # if 403 or 500, retry
-    if (err %in% c("403", "403 Forbidden", "500", "500 Internal Server Error")) {
+    # if 403, 500 or 502, retry
+    if (err %in% c("403", "403 Forbidden",
+                   "500", "500 Internal Server Error",
+                   "502")) {
       # all tokens tried, stop
       if (retry_count > length(tokens)) {
         stop(err)

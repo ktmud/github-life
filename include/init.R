@@ -8,8 +8,6 @@ library(lubridate)
 library(DBI)
 library(RMySQL)
 
-source("include/db.R")
-
 # change this to the directory you want
 kDataDir <- "/srv/github_data/"
 # cache all available repos in global memory (this might be faster than you thought)
@@ -17,30 +15,14 @@ if (!exists("kAllRepos")) {
   kAllRepos <- read_csv("data/popular_repos.csv") 
 }
 
-db.ok <- FALSE
-# close existing connection
-if (exists("db")) {
-  try({
-    # if connection is gone, this will throw an error
-    dbExecute(db$con, "select 1")
-    db.ok <- TRUE
-  })
-}
-if (!db.ok) {
-  db <- src_mysql(
-    dbname = Sys.getenv("MYSQL_DBNAME"),
-    host = "localhost",
-    # host = Sys.getenv("MYSQL_HOST"),
-    port = as.integer(Sys.getenv("MYSQL_PORT")),
-    user = Sys.getenv("MYSQL_USER"),
-    password = Sys.getenv("MYSQL_PASSWD")
-  )
-  # access all database tables
-  ght.tables <- src_tbls(db)
-  names(ght.tables) <- ght.tables
-  ght <- lapply(ght.tables, function(x) tbl(db, x))
+ListRandomRepos <- function(offset = 0, limit = 5, seed = 1984) {
+  # List randome repos, helpful when we only want to 
+  # scrape a small sample
+  # Args:
+  #  seed - the seed for randomize the sample
   
-  # Necessary for EMOJIs! :), otherwise the `g_issues.title` column
-  # may complain
-  dbExecute(db$con, "SET NAMES utf8mb4")
+  # set a seed so the result can be repeatable
+  set.seed(seed)
+  repos <- sample_n(kAllRepos, nrow(kAllRepos))
+  repos[(offset+1):min(nrow(repos), offset+limit), ]
 }

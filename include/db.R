@@ -1,27 +1,33 @@
-# this version of this function was used before
-# I put a `repo` column for every table
-RepoExists.old <- function(fullname, tname = "g_issues") {
-  # Check whether a repo exists in a Github data table
-  res <- dbGetQuery(db$con, sprintf(
-    "SELECT id as issue_id, repo FROM g_issues
-    WHERE repo = %s 
-    -- state is either `closed` or `open`
-    -- `closed` issues must have a `close` event
-    -- if not closed issues found, the oldest repo first
-    ORDER BY `state` ASC, `created_at` ASC
-    LIMIT 1",
-    dbQuoteString(db$con, fullname)
-  ))
-  if (nrow(res) == 1 && tname != "g_issues") {
-    # if other tables, filter by `issue_id` column
-    # TODO: might want to use `repo_id` instead
-    res <- dbGetQuery(db$con, sprintf(
-      "SELECT issue_id FROM %s WHERE issue_id = %s LIMIT 1",
-      dbQuoteIdentifier(db$con, tname), res$issue_id[1]
-    ))
-  }
-  nrow(res) == 1
+
+db.ok <- FALSE
+# close existing connection
+if (exists("db")) {
+  try({
+    # if connection is gone, this will throw an error
+    dbExecute(db$con, "select 1")
+    db.ok <- TRUE
+  })
 }
+if (!db.ok) {
+  db <- src_mysql(
+    dbname = Sys.getenv("MYSQL_DBNAME"),
+    host = "localhost",
+    # host = Sys.getenv("MYSQL_HOST"),
+    port = as.integer(Sys.getenv("MYSQL_PORT")),
+    user = Sys.getenv("MYSQL_USER"),
+    password = Sys.getenv("MYSQL_PASSWD")
+  )
+  # access all database tables
+  ght.tables <- src_tbls(db)
+  names(ght.tables) <- ght.tables
+  ght <- lapply(ght.tables, function(x) tbl(db, x))
+  
+  # Necessary for EMOJIs! :), otherwise the `g_issues.title` column
+  # may complain
+  dbExecute(db$con, "SET NAMES utf8mb4")
+}
+
+
 RepoExistsInTable <- function(fullname, in_table = "g_issues") {
   # Check whether repo exists in a database table
   res <- dbGetQuery(db$con, sprintf(
@@ -76,19 +82,6 @@ ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
     limit, offset
   ))
 }
-
-ListRandomRepos <- function(offset = 0, limit = 5, seed = 1984) {
-  # List randome repos, helpful when we only want to 
-  # scrape a small sample
-  # Args:
-  #  seed - the seed for randomize the sample
-  
-  # set a seed so the result can be repeatable
-  set.seed(seed)
-  repos <- sample_n(kAllRepos, nrow(kAllRepos))
-  repos[(offset+1):min(nrow(repos), offset+limit), ]
-}
-
 # === For checking of data integerity --------------------
 ListExistingRepos <- function(offset = 0, limit = 5) {
   dbGetQuery(db$con, sprintf(
@@ -102,7 +95,6 @@ ListExistingRepos <- function(offset = 0, limit = 5) {
     ", limit, offset
   ))
 }
-
 ListNoIssueRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
   # List repos that has no issues at all
   tname <- "bad_repos_1"
