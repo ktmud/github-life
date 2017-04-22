@@ -46,9 +46,9 @@ saveRDS(cleaned_project_list, file = "cleaned_project_list.rds")
 Start
 
 ```{r}
-cleaned_project_list <- readRDS("cleaned_project_list.rds")
-project_names <- readRDS("project_names.rds")
-user_names <- readRDS("user_names.rds")
+cleaned_project_list <- readRDS("../data/cleaned_project_list.rds")
+project_names <- readRDS("../data/project_names.rds")
+user_names <- readRDS("../data/user_names.rds")
 ```
 
 ```{r}
@@ -68,7 +68,7 @@ p6 %>%
 ## Projects
 
 ```{r}
-popular_projects <- read_csv("popular_projects.csv")
+popular_projects <- read_csv("../data/popular_projects.csv")
 popular_projects$n_watchers <- as.integer(popular_projects$n_watchers)
 summary(popular_projects)
 ```

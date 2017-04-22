@@ -7,7 +7,9 @@ names(tokens) <- .tokens
 tokens[1:length(tokens)] <- map(.tokens, function(x) {
   list(token = x)
 })
-token_i <- 0  # index of current token in use
+# index of current token in use
+# each process should begin with a random pattern
+token_i <- sample(1:length(tokens) - 1, 1)
 
 GetAToken <- function(tried = list()) {
   # Get a new token to use. Will check rate limit automatically.
@@ -181,6 +183,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     }
     res2 <- NULL
     tryCatch({
+      Sys.sleep(0.1)  # github might complain if we do this too fast
       res2 <- gh::gh_next(res)
     }, error = warning)
     if (retry_count < length(tokens) && is.null(res2)) {
