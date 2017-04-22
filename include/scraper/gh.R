@@ -26,25 +26,26 @@ GetAToken <- function(tried = list()) {
   token <- tokens[[token_i]]
   tried[[token$token]] <- token
   
-  # if already tried the last one
-  # get the one with minimal wait time and do the wait
-  if (length(tried) == length(tokens)) {
-    token <- tried[[which.min(map(tried, function(x) x$wait_until))]]
-    # time difference in seconds
-    wait_secs <- (token$wait_until - Sys.time()) %>%
-      as.numeric(units = "secs") %>% max(0)
-    message("")  # An empty new line to separate this message with others
-    message("> rate limit reached, wait for ", wait_secs, " secs.")
-    Sys.sleep(wait_secs)
-    # waited enough time, reset token wait time
-    tokens[[token$token]] <<- list(token = token$token)
-  }
-  if (!is.null(token$remaining) &&
-      token$remaining < length(tokens) * 1.5 &&
+  # if this token needs to wait, try another one
+  if (!is.null(token$remaining) && token$remaining < length(tokens) * 1.5 &&
       token$wait_until > Sys.time()) {
-    # if this token needs to wait, try another one
-    token <- tokens[[GetAToken(tried = tried)]]
+    # if already tried the last one
+    # get the one with minimal wait time and do the wait
+    if (length(tried) == length(tokens)) {
+      token <- tried[[which.min(map(tried, function(x) x$wait_until))]]
+      # time difference in seconds
+      wait_secs <- (token$wait_until - Sys.time()) %>%
+        as.numeric(units = "secs") %>% max(0)
+      message("")  # An empty new line to separate this message with others
+      message("> rate limit reached, wait for ", wait_secs, " secs.")
+      Sys.sleep(wait_secs)
+      # waited enough time, reset this token's wait time
+      tokens[[token$token]] <<- list(token = token$token)
+    } else {
+      token <- tokens[[GetAToken(tried = tried)]]
+    }
   }
+  
   # return the token in use
   token$token
 }
@@ -56,7 +57,12 @@ GetAToken <- function(tried = list()) {
   if (is.null(response)) {
     stop("Must provide response headers")
   }
-  remaining <- as.integer(response$`x-ratelimit-remaining`)
+  # remaining <- as.integer(response$`x-ratelimit-remaining`)
+  if (token_i == 1) {
+    remaining <- 200
+  } else {
+    remaining <- 0
+  }
   wait_until <- as.integer(response$`x-ratelimit-reset`) %>%
     as.POSIXct(origin="1970-01-01", tz = "UTC")
   tokens[[token]] <<- list(
