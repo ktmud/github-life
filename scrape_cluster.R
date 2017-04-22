@@ -42,20 +42,26 @@ cl_cleanup <- function() {
 # split into small chunks is more efficient
 n_total <- nrow(kAllRepos)
 n_total <- 2000
-partition <- seq(0, n_total + 1, 20)
+partition <- seq(0, n_total + 1, 100)
+
+start_time <- Sys.time()
+
 for (i in seq(1, length(partition) - 1)) {
   myexp <- GenExpression(i, partition)
   # myexp <- GenExpression(i, partition, "ListPopularRepos")
   f[[i]] <- future(eval(myexp))
   message("Queued: ", partition[i])
-  if (i %% (n_wokers * 2) == 0) {
+  if (as.numeric(Sys.time() - start_time, units = "mins") > 10) {
     # The memory in forked R sessions seems never recycled.
-    # We'd have to restart the whole cluster once in a while (every 2 rounds)
+    # We'd have to restart the whole cluster once in a while (every 10 minutes)
     # in order to keep the memory consumption under control.
+    # note the restart might take a while if one of the sessions
+    # were blocked by a very large repo.
     message("Restart a new cluster.. so to release some memory.")
     cl_cleanup()
     cl <- makeCluster(n_wokers)
     setDefaultCluster(cl)
+    start_time <- Sys.time()
   }
   Sys.sleep(2)
 }
