@@ -1,4 +1,8 @@
+## Dev version of these pkgs are required.
+library(DBI)
+library(RMySQL)
 
+# ========== Establish database connection ===============
 db.ok <- FALSE
 # close existing connection
 if (exists("db")) {
@@ -11,7 +15,7 @@ if (exists("db")) {
 if (!db.ok) {
   db <- src_mysql(
     dbname = Sys.getenv("MYSQL_DBNAME"),
-    host = "localhost",
+    host = "127.0.0.1",
     # host = Sys.getenv("MYSQL_HOST"),
     port = as.integer(Sys.getenv("MYSQL_PORT")),
     user = Sys.getenv("MYSQL_USER"),
@@ -28,15 +32,8 @@ if (!db.ok) {
 }
 
 
-RepoExistsInTable <- function(fullname, in_table = "g_issues") {
-  # Check whether repo exists in a database table
-  res <- dbGetQuery(db$con, sprintf(
-    "SELECT 1 FROM %s WHERE repo = %s LIMIT 1",
-    dbQuoteIdentifier(db$con, in_table),
-    dbQuoteString(db$con, fullname)
-  ))
-  nrow(res) == 1
-}
+# ======== Database functions ====================
+
 SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
   # remove existing data then save the latest data to database
   # Args:
@@ -68,6 +65,15 @@ SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
     }
   })
   return(TRUE)
+}
+RepoExistsInTable <- function(fullname, in_table = "g_issues") {
+  # Check whether repo exists in a database table
+  res <- dbGetQuery(db$con, sprintf(
+    "SELECT 1 FROM %s WHERE repo = %s LIMIT 1",
+    dbQuoteIdentifier(db$con, in_table),
+    dbQuoteString(db$con, fullname)
+  ))
+  nrow(res) == 1
 }
 ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
   # List the Top N most popular repos

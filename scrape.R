@@ -143,9 +143,7 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   start <- offset + 1
   while (offset < n_max) {
     repos <- list_fun(offset, perpage) 
-    if (!is_atomic(repos)) {
-      repos <- repos$repo
-    }
+    if (!is_atomic(repos)) repos <- repos$repo
     if (is.null(repos) || length(repos) == 0) {
       msg("")
       msg("No more. Stop.")
@@ -159,4 +157,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-ScrapeAll(offset = 780, n_max = 2000)
+ScrapeAll(offset = 0, n_max = 2000)

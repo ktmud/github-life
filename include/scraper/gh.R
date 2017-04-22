@@ -158,11 +158,14 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     # if 403, 500 or 502, retry
     if (err %in% c("403", "403 Forbidden",
                    "500", "500 Internal Server Error",
-                   "502")) {
+                   "502", "502 Server Error")) {
       # all tokens tried, stop
       if (retry_count > length(tokens)) {
+        cat("ERROR while scraping", err_full, "\n")
         stop(err)
       }
+      cat("ERROR:", err, "\n")
+      cat("Retry:", retry_count + 1, "\n")
       # each retry will use a new token
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
     }

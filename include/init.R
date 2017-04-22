@@ -4,10 +4,6 @@ library(magrittr)
 library(stringr)
 library(lubridate)
 
-## Dev version of these pkgs are required.
-library(DBI)
-library(RMySQL)
-
 # change this to the directory you want
 kDataDir <- "/srv/github_data/"
 # cache all available repos in global memory (this might be faster than you thought)

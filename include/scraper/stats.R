@@ -37,6 +37,7 @@ ScrapePunchCard <- .ScrapeAndSave("punch_card", function(repo, ...) {
     do.call(rbind, .) %>%
     as.data.frame()
   colnames(dat) <- c("day", "hour", "commits")
+  dat$repo <- repo
   dat
 })
 
