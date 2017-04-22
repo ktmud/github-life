@@ -17,7 +17,7 @@ msg <- function(..., appendLF = TRUE) {
     cat("\n")
   }
 }
-  
+
 # Start Fetching Data -----------
 FetchAll <- function(repos,
                      state = "all",
@@ -108,7 +108,7 @@ FetchAll <- function(repos,
         cat(pad(n), "* | ")
       }
     }
-    msg("OK.")
+    cat("\n")
     return(TRUE)
   })
 }
