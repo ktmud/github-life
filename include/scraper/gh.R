@@ -130,14 +130,16 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # message("Resource Blocked")
       return()
     }
-    # if 403, retry
     if (err == "403 Forbidden") {
       # if we see 403, but there are still remaining requests
       # then this is the repo's fault, just return non data for it
       if (tokens[[token]]$remaining > 0) {
         return()
       } 
-      # all tokens tried
+    }
+    # if 403 or 500, retry
+    if (err %in% c("403", "403 Forbidden", "500", "500 Internal Server Error")) {
+      # all tokens tried, stop
       if (retry_count > length(tokens)) {
         stop(err)
       }

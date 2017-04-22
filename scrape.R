@@ -136,4 +136,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-# ScrapeAll(offset = 250, n_max = 500)
+# ScrapeAll(offset = 600, n_max = 700)
