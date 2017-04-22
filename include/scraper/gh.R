@@ -1,4 +1,3 @@
-
 # make tokens a list, so we can save extra info such as rate limit
 .tokens <- Sys.getenv("GITHUB_TOKENS") %>% str_trim() %>%
   str_split("\\s+", simplify = TRUE) %>%
@@ -57,12 +56,7 @@ GetAToken <- function(tried = list()) {
   if (is.null(response)) {
     stop("Must provide response headers")
   }
-  # remaining <- as.integer(response$`x-ratelimit-remaining`)
-  if (token_i == 1) {
-    remaining <- 200
-  } else {
-    remaining <- 0
-  }
+  remaining <- as.integer(response$`x-ratelimit-remaining`)
   wait_until <- as.integer(response$`x-ratelimit-reset`) %>%
     as.POSIXct(origin="1970-01-01", tz = "UTC")
   tokens[[token]] <<- list(
