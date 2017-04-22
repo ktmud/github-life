@@ -9,6 +9,7 @@ tokens[1:length(tokens)] <- map(.tokens, function(x) {
 })
 # index of current token in use
 # each process should begin with a random pattern
+set.seed(NULL)  # make sure everything is really randomized
 token_i <- sample(1:length(tokens) - 1, 1)
 
 GetAToken <- function(tried = list()) {
@@ -132,7 +133,8 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   })
   
   # for debug
-  # gh_err <<- err_full
+  gh_err_full <<- err_full
+  gh_err <<- err
   
   # handle exceptions
   if (!is.null(err)) {
@@ -167,7 +169,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       cat("ERROR:", err, "\n")
       cat("Retry:", retry_count + 1, "\n")
       # each retry will use a new token
-      Sys.sleep(10)
+      Sys.sleep(5)
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
     }
     # other types of errors, we let it fail, but will
