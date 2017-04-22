@@ -14,6 +14,9 @@ ScrapeContributors <- .ScrapeAndSave("contributors", function(repo, ...) {
       df <- bind_rows(x$weeks)
       if (!is.null(x$author)) {
         df$author <- x$author$login
+      } else {
+        # empty string is allowed, and will be treated as an unknown user
+        df$author <- ""
       }
       df
     }) %>%
