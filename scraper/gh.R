@@ -7,6 +7,7 @@ names(tokens) <- .tokens
 tokens[1:length(tokens)] <- map(.tokens, function(x) {
   list(token = x)
 })
+
 # index of current token in use
 # each process should begin with a random pattern
 set.seed(NULL)  # make sure everything is really randomized
@@ -138,9 +139,9 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     } else {
       err <<- x
     }
-    msg("\nError for ", args[[2]], ": ", err)
     # export the last error to globals
     assign("gh_err_full", x, envir = .GlobalEnv)
+    msg("\nError for ", args[[2]], ": ", err)
   }
   
   tryCatch({

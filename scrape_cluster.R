@@ -36,7 +36,7 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
       list_fun
     )
   )
-  }
+}
 
 f <- list()
 cl_cleanup <- function() {
@@ -51,14 +51,18 @@ cl_cleanup <- function() {
 }
 
 n_total <- nrow(kAllRepos)
-partition <- seq(0, n_total + 1, 100)
+partition <- seq(0, n_total + 1, 500)
 
 start_time <- Sys.time()
 
 for (i in seq(1, length(partition) - 1)) {
   myexp <- GenExpression(i, partition)
   # myexp <- GenExpression(i, partition, "ListPopularRepos")
-  f[[i]] <- future(eval(myexp))
+  f[[i]] <- future({
+    # this .GlobalEnv is actually the environment
+    # of the forked process
+    eval(myexp, envir = .GlobalEnv)
+  })
   message("Queued: ", partition[i])
   if (as.numeric(Sys.time() - start_time, units = "mins") > 30) {
     # The memory in forked R sessions seems never recycled.
