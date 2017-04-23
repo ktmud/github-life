@@ -3,6 +3,7 @@
 #
 library(future)
 library(parallel)
+
 source("include/init.R")
 
 n_workers <- 6
@@ -19,13 +20,13 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
     text = sprintf(
       '
       if (!exists("ScrapeAll")) {
-        # dont reload if data already loaded
-        .GlobalEnv$logfile <- paste0("/tmp/github-scrape-%s", ".log")
-        .GlobalEnv$n_workers <- %s  # this is needed for token control
-        # sink("/dev/null")  # all normal messages go to limbo
-        source("scrape.R")
+      # dont reload if data already loaded
+      .GlobalEnv$logfile <- "/tmp/github-scrape-%s.log"
+      .GlobalEnv$n_workers <- %s  # this is needed for token control
+      # sink("/dev/null")  # all normal messages go to limbo
+      source("scrape.R")
       }
-      ScrapeAll(offset = %s, n_max = %s, list_fun = %s, scrape_stats = TRUE)
+      ScrapeAll(offset = %s, n_max = %s, list_fun = %s, verbose = TRUE)
       ',
       i %% n_workers,
       n_workers,
@@ -38,13 +39,15 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
 
 f <- list()
 cl_cleanup <- function() {
-  v <- lapply(f, FUN = function(x) if (!is.null(x)) value(x))
+  v <- lapply(f, FUN = function(x) {
+    if (!is.null(x)) {
+      value(x)
+    }
+  })
 }
 
 n_total <- nrow(kAllRepos)
-# split into small chunks to avoid being blocked by
-# very large repos
-partition <- seq(8000, n_total + 1, 50)
+partition <- seq(0, n_total + 1, 100)
 
 start_time <- Sys.time()
 
@@ -53,11 +56,6 @@ for (i in seq(1, length(partition) - 1)) {
   # myexp <- GenExpression(i, partition, "ListPopularRepos")
   f[[i]] <- future(eval(myexp))
   message("Queued: ", partition[i])
-  if (i %% 50 == 0) {
-    # consume the values every 50 batches
-    message("Clearing up `future` queue..")
-    cl_cleanup()
-  }
   if (as.numeric(Sys.time() - start_time, units = "mins") > 30) {
     # The memory in forked R sessions seems never recycled.
     # We'd have to restart the whole cluster once in a while (every 20 minutes)
@@ -75,7 +73,6 @@ for (i in seq(1, length(partition) - 1)) {
   # so to avoid the `sink stack is full` error
   # Sys.sleep(1)
 }
-
 cl_cleanup()
 
 # cleanup log files

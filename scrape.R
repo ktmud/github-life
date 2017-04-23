@@ -151,10 +151,13 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
     }
     msg("")
     msg(sprintf("Scraping %s-%s of %s...", offset + 1, offset + perpage, n_max))
-    FetchAll(repos, ...)
+    tryCatch(
+      FetchAll(repos, ...),
+      error = warning
+    )
     offset <- offset + perpage
   }
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-ScrapeAll(offset = 0, n_max = 2500)
+# ScrapeAll(offset = 1200, n_max = 2500)

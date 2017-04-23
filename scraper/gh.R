@@ -51,9 +51,12 @@ GetAToken <- function(tried = list()) {
 
 .TokenLimitReached <- function(tk) {
   n_workers <- .GlobalEnv$n_workers
-  if (is.null(n_workers)) n_workers <- 1
+  if (is.null(n_workers)) {
+    n_workers <- 1
+  }
   !is.null(tk$remaining) &&
-      tk$remaining <= length(tokens) * n_workers &&
+      !is.na(tk$remaining) &&
+      tk$remaining <= (length(tokens) * n_workers) &&
       tk$wait_until > Sys.time()
 }
 
@@ -63,6 +66,11 @@ GetAToken <- function(tried = list()) {
   }
   if (is.null(response)) {
     stop("Must provide response headers")
+  }
+  if (is.null(response$`x-ratelimit-reset`)) {
+    # no information found, skip
+    cat("\nBAD reseponse for rate limit check:", response, "\n")
+    return(FALSE)
   }
   remaining <- as.integer(response$`x-ratelimit-remaining`)
   # XXX: for debug
@@ -87,7 +95,9 @@ gh_has_next <- function(res) {
 next_page <- function(res) {
   # get the URL for next page
   response <- attr(res, "response")
-  if (is.null(response$link)) return(NA)
+  if (is.null(response$link)) {
+    return(NA)
+  }
   str_match(response$link, '<(.*?)>; rel="next"')[1, 2] %>%
     # remove hostname prefix
     str_replace("https://api.github.com/", "")
@@ -186,7 +196,9 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   # we are rewriting this .limit logic because we need to
   # check rate limit here
   while (!is.null(.limit) && length(res) < .limit && gh_has_next(res)) {
-    if (verbose) cat("\nFetching:", next_page(res))
+    if (verbose) {
+      cat("\nFetching:", next_page(res))
+    }
     # get a new token
     new_token <- GetAToken()
     if (new_token != token) {
@@ -211,7 +223,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
         # it will always wait.
         retry_count <- retry_count + 1
         next
-      } else if (length(res) < 1000) {
+      } else if (is.atomic(res) || length(res) < 1000) {
         # if not every page is successful, and the data are small
         # we might just discard the data any way
         return()
