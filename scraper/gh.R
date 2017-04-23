@@ -132,17 +132,15 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   err <- NULL
   
   handle_error <- function(x) {
-    err_full <<- x
     if (is.list(x$headers)) {
       err <<- x$headers$status
       .SaveRateLimit(token, response = x$headers)
     } else {
       err <<- x
     }
-    msg("Error while scraping", repo, ": ", err)
-    warning(x)
-    # for debug
-    assign("gh_err_full", err_full, envir = .GlobalEnv)
+    msg("\nError for ", args[[2]], ": ", err)
+    # export the last error to globals
+    assign("gh_err_full", x, envir = .GlobalEnv)
   }
   
   tryCatch({

@@ -21,13 +21,12 @@ unlink("/tmp/github-scrape-*.log")
 GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
   parse(
     text = sprintf(
-      '
-      if (!exists("ScrapeAll")) {
-      # dont reload if data already loaded
-      .GlobalEnv$logfile <- paste0("/tmp/github-scrape-", Sys.getpid(), ".log")
-      .GlobalEnv$n_workers <- %s  # this is needed for token control
-      # sink("/dev/null")  # all normal messages go to limbo
-      source("scrape.R")
+      'if (!exists("ScrapeAll")) {
+        # dont reload if data already loaded
+        .GlobalEnv$logfile <- paste0("/tmp/github-scrape-", Sys.getpid(), ".log")
+        .GlobalEnv$n_workers <- %s  # this is needed for token control
+        # sink("/dev/null")  # all normal messages go to limbo
+        source("scrape.R")
       }
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, verbose = TRUE)
       ',
@@ -42,9 +41,12 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
 f <- list()
 cl_cleanup <- function() {
   v <- lapply(f, FUN = function(x) {
-    if (!is.null(x)) {
-      value(x)
-    }
+    if (is.null(x)) return()
+    tryCatch(value(x), error = function(err) {
+      message("Error at executing:")
+      message(x$globals$myexp)
+      message(err)
+    })
   })
 }
 

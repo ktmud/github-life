@@ -145,4 +145,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
 #           scrape_issue_events = FALSE,
 #           scrape_issue_comments = FALSE,
 #           scrape_stargazers = FALSE, verbose =TRUE)
-# ScrapeAll(offset = 1200, n_max = 2500)
+# ScrapeAll(offset = 0, n_max = 2500)
