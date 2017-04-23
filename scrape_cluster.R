@@ -28,7 +28,7 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
       }
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, verbose = TRUE)
       ',
-      i %% n_workers,
+      Sys.getpid() %% n_workers,
       n_workers,
       partition[i],
       partition[i + 1],
