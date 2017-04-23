@@ -12,6 +12,15 @@ tokens[1:length(tokens)] <- map(.tokens, function(x) {
 set.seed(NULL)  # make sure everything is really randomized
 token_i <- sample(1:length(tokens) - 1, 1)
 
+# number of workers running coccurently
+n_workers <- .GlobalEnv$n_workers
+if (is.null(n_workers)) {
+  n_workers <- 1
+}
+# interval between each request, only applies to pagination requests
+# -0.2s is the average time cost for each request to finish
+sleep_length <- max(0, 60*60 / 5000 / length(tokens) * n_workers - 0.2)
+
 GetAToken <- function(tried = list()) {
   # Get a new token to use. Will check rate limit automatically.
   #  1. pick tokens in turn from the tokens list
@@ -37,7 +46,7 @@ GetAToken <- function(tried = list()) {
       # time difference in seconds
       wait_secs <- (tk$wait_until - Sys.time()) %>%
         as.numeric(units = "secs") %>% max(0)
-      cat("\n > rate limit reached, wait for", wait_secs, "secs.")
+      msg("> rate limit reached, wait for ", wait_secs, " secs.")
       Sys.sleep(wait_secs)
       # waited enough time, reset this token's wait time
       tokens[[tk$token]] <<- list(token = tk$token)
@@ -50,10 +59,6 @@ GetAToken <- function(tried = list()) {
 }
 
 .TokenLimitReached <- function(tk) {
-  n_workers <- .GlobalEnv$n_workers
-  if (is.null(n_workers)) {
-    n_workers <- 1
-  }
   !is.null(tk$remaining) &&
     !is.na(tk$remaining) &&
     tk$remaining <= (length(tokens) * n_workers) &&
@@ -69,7 +74,7 @@ GetAToken <- function(tried = list()) {
   }
   if (is.null(response$`x-ratelimit-reset`)) {
     # no information found, skip
-    cat("\nBAD reseponse for rate limit check:", response, "\n")
+    msg("BAD reseponse for rate limit check: ", response, "")
     return(FALSE)
   }
   remaining <- as.integer(response$`x-ratelimit-remaining`)
@@ -108,7 +113,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   # GH function with ratelimit. Overriding the function
   # is necessary because we want to handle pagination manually.
   # Args:
-  #   verbose - whethere to print debug messages
+  #   verbose - whethere to print debug msgs
   # All others arguments are the same as `gh`
   # Return:
   #   NULL - when resource is not available
@@ -135,6 +140,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     } else {
       err <<- x
     }
+    msg(x)
     # for debug
     assign("gh_err_full", err_full, envir = .GlobalEnv)
   }
@@ -152,11 +158,11 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     # 451: Blocked
     err <- as.character(err)
     if (err %in% c("404", "404 Not Found")) {
-      # cat("Not Found")
+      # msg("Not Found")
       return()
     }
     if (err == "451") {
-      # cat("Resource Blocked")
+      # msg("Resource Blocked")
       return()
     }
     if (err %in% c("403", "403 Forbidden")) {
@@ -172,14 +178,14 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
                    "502", "502 Server Error")) {
       # all tokens tried, stop
       if (retry_count > length(tokens)) {
-        cat("ERROR while scraping", err_full, "\n")
-        warning(err)
+        msg("ERROR while scraping", err_full, "\n")
+        msg(err)
         # return NULL
         # don't break the flow
         return()
       }
-      cat("ERROR:", err, "\n")
-      cat("Retry:", retry_count + 1, "\n")
+      msg("ERROR:", err, "\n")
+      msg("Retry:", retry_count + 1, "\n")
       Sys.sleep(5)
       # each retry will get a new token
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
@@ -189,17 +195,13 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     stop(err)
   }
   
-  n_workers <- .GlobalEnv$n_workers
-  if (is.null(n_workers)) {
-    n_workers <- 1
-  }
   retry_count <- 0
   
   # we are rewriting this .limit logic because we need to
   # check rate limit here
   while (!is.null(.limit) && length(res) < .limit && gh_has_next(res)) {
     if (verbose) {
-      cat("\nFetching:", next_page(res))
+      msg("Fetch: ", next_page(res))
     }
     # get a new token
     new_token <- GetAToken()
@@ -209,9 +211,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       attr(res, ".send_headers") <- headers
       token <- new_token
     }
-    
-    Sys.sleep(n_workers / 50)  # github might complain if we do this too fast
-    
+    Sys.sleep(sleep_length)
     res2 <- NULL
     tryCatch({
       res2 <- gh::gh_next(res)

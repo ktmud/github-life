@@ -7,29 +7,6 @@ source("scraper/stats.R")
 source("scraper/issues.R")
 source("scraper/stargazers.R")
 
-pad <- function(x, n = 4, side = "left") {
-  # pad numbers for better messaging
-  str_pad(x, n, side = side)
-}
-msg <- function(..., appendLF = TRUE) {
-  cat(...)
-  if (appendLF) {
-    cat("\n")
-  }
-}
-
-cat_dest <- NULL
-if (!is.null(.GlobalEnv$logfile)) {
-  cat_dest <- file(.GlobalEnv$logfile, "a")
-}
-cat <- function(...) {
-  if (!is.null(cat_dest)) {
-    base::cat(..., file = cat_dest)
-  } else {
-    base::cat(...)
-  }
-}
-
 # Start Fetching Data -----------
 FetchAll <- function(repos,
                      state = "all",
@@ -160,4 +137,12 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
+# Scrape all stats first, so to  trigger contributors calculation on GitHub
+# ScrapeAll(n_max = 60000, 
+#           scrape_languages = FALSE,
+#           scrape_stats = TRUE,
+#           scrape_issues = FALSE,
+#           scrape_issue_events = FALSE,
+#           scrape_issue_comments = FALSE,
+#           scrape_stargazers = FALSE, verbose =TRUE)
 # ScrapeAll(offset = 1200, n_max = 2500)
