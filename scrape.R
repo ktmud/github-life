@@ -135,11 +135,11 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
 # Scrape all stats first, so to  trigger contributors calculation on GitHub
+# ScrapeAll(offset = 0, n_max = 2500)
 # ScrapeAll(n_max = 2500,
 #           scrape_languages = FALSE,
 #           scrape_stats = TRUE,
 #           scrape_issues = FALSE,
 #           scrape_issue_events = FALSE,
-#           scrape_issue_comments = FALSE,
+#           scrape_issue_comments = TRUE,
 #           scrape_stargazers = FALSE, verbose =TRUE)
-# ScrapeAll(offset = 0, n_max = 2500)

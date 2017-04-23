@@ -28,7 +28,14 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
         # sink("/dev/null")  # all normal messages go to limbo
         source("scrape.R")
       }
-      ScrapeAll(offset = %s, n_max = %s, list_fun = %s, verbose = TRUE)
+      ScrapeAll(offset = %s, n_max = %s, list_fun = %s,
+                skip_existing = FALSE,
+                scrape_languages = FALSE,
+                scrape_stats = TRUE,
+                scrape_issues = FALSE,
+                scrape_issue_events = FALSE,
+                scrape_issue_comments = FALSE,
+                verbose = TRUE)
       ',
       n_workers,
       partition[i],
@@ -64,9 +71,9 @@ for (i in seq(1, length(partition) - 1)) {
     eval(myexp, envir = .GlobalEnv)
   })
   message("Queued: ", partition[i])
-  if (as.numeric(Sys.time() - start_time, units = "mins") > 30) {
+  if (as.numeric(Sys.time() - start_time, units = "mins") > 60) {
     # The memory in forked R sessions seems never recycled.
-    # We'd have to restart the whole cluster once in a while (every 20 minutes)
+    # We'd have to restart the whole cluster once in a while (every 1 hour)
     # in order to keep the memory consumption under control.
     # note the restart might take a while if one of the sessions
     # were blocked by a very large repo.

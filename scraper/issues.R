@@ -47,6 +47,7 @@ ScrapeIssueEvents <- .ScrapeAndSave("issue_events", function(repo, ...) {
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %>%
     map(function(x) {
+      # the order here must in line with the schema
       c(id = x$id,
         repo = repo,
         issue_id = safe_val(x$issue$id),
@@ -70,12 +71,13 @@ ScrapeIssueComments <- .ScrapeAndSave("issue_comments", function(repo, ...) {
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %>%
     map(function(x) {
+      # the order here must in line with the schema
       c(id = x$id,
-        repo = repo,
+        issue_id = x$issue_id,
         user_id = x$user$id, 
-        # also save `login` for easier table joins
-        user_login = safe_val(x$user$login),
         created_at = parse_datetime(x$created_at),
+        repo = repo,
+        user_login = safe_val(x$user$login),
         updated_at = parse_datetime(x$updated_at),
         body = safe_val(x$body))
     }) %>%
