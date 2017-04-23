@@ -55,9 +55,9 @@ GetAToken <- function(tried = list()) {
     n_workers <- 1
   }
   !is.null(tk$remaining) &&
-      !is.na(tk$remaining) &&
-      tk$remaining <= (length(tokens) * n_workers) &&
-      tk$wait_until > Sys.time()
+    !is.na(tk$remaining) &&
+    tk$remaining <= (length(tokens) * n_workers) &&
+    tk$wait_until > Sys.time()
 }
 
 .SaveRateLimit <- function(token, res = NULL, response = NULL) {
@@ -190,7 +190,9 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   }
   
   n_workers <- .GlobalEnv$n_workers
-  if (is.null(n_workers)) n_workers <- 1
+  if (is.null(n_workers)) {
+    n_workers <- 1
+  }
   retry_count <- 0
   
   # we are rewriting this .limit logic because we need to

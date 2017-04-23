@@ -52,7 +52,7 @@ FetchAll <- function(repos,
     # Begin scraping ...
     cat("$", pad(str_trunc(repo, 45), 45, "right"))
     # always scrape repo details
-    n <- ScrapeRepoDetails(repo, skip_existing)
+    n <- ScrapeRepoDetails(repo, skip_existing, ...)
     if (is.null(n)) {
       # don't scrape others if the resource is known unavailable
       cat(pad("(X) GONE .", 13), "\n")
@@ -65,7 +65,7 @@ FetchAll <- function(repos,
     }
     cat("\n  ")
     if (scrape_languages) {
-      n <- ScrapeLanguages(repo, skip_existing)
+      n <- ScrapeLanguages(repo, skip_existing, ...)
       if (is.null(n)) {
         msg("(X) resource unavailable.  ")
         return(FALSE)
@@ -76,7 +76,7 @@ FetchAll <- function(repos,
       }
     }
     if (scrape_stats) {
-      n <- ScrapeStats(repo, skip_existing)
+      n <- ScrapeStats(repo, skip_existing, ...)
       if (is.null(n)) {
         msg("(X) resource unavailable.  ")
         return(FALSE)
@@ -88,7 +88,7 @@ FetchAll <- function(repos,
       }
     }
     if (scrape_issues) {
-      n <- ScrapeIssues(repo, skip_existing)
+      n <- ScrapeIssues(repo, skip_existing, ...)
       if (is.null(n)) {
         msg("(X) resource unavailable.  ")
         return(FALSE)
@@ -99,7 +99,7 @@ FetchAll <- function(repos,
       }
     }
     if (scrape_issue_events) {
-      n <- ScrapeIssueEvents(repo, skip_existing)
+      n <- ScrapeIssueEvents(repo, skip_existing, ...)
       if (is.null(n)) {
         msg("(X) resource unavailable.  ")
         return(FALSE)
@@ -110,7 +110,7 @@ FetchAll <- function(repos,
       }
     }
     if (scrape_issue_comments) {
-      n <- ScrapeIssueComments(repo, skip_existing)
+      n <- ScrapeIssueComments(repo, skip_existing, ...)
       if (is.null(n)) {
         msg("(X) resource unavailable.  ")
         return(FALSE)
@@ -121,7 +121,7 @@ FetchAll <- function(repos,
       }
     }
     if (scrape_stargazers) {
-      n <- ScrapeStargazers(repo, skip_existing)
+      n <- ScrapeStargazers(repo, skip_existing, ...)
       if (is.null(n)) {
         msg("(X) resource unavailable.  ")
         return(FALSE)

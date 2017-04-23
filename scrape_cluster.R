@@ -15,20 +15,22 @@ if (exists("cl")) {
   plan(cluster, workers = cl)
 }
 
+# cleanup log files
+unlink("/tmp/github-scrape-*.log")
+
 GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
   parse(
     text = sprintf(
       '
       if (!exists("ScrapeAll")) {
       # dont reload if data already loaded
-      .GlobalEnv$logfile <- "/tmp/github-scrape-%s.log"
+      .GlobalEnv$logfile <- paste0("/tmp/github-scrape-", Sys.getpid(), ".log")
       .GlobalEnv$n_workers <- %s  # this is needed for token control
       # sink("/dev/null")  # all normal messages go to limbo
       source("scrape.R")
       }
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, verbose = TRUE)
       ',
-      Sys.getpid() %% n_workers,
       n_workers,
       partition[i],
       partition[i + 1],
@@ -74,6 +76,3 @@ for (i in seq(1, length(partition) - 1)) {
   # Sys.sleep(1)
 }
 cl_cleanup()
-
-# cleanup log files
-unlink("/tmp/github-scrape-*.log")
