@@ -2,10 +2,15 @@
 # Statistics
 #
 ScrapeContributors <- .ScrapeAndSave("contributors", function(repo, ...) {
-  dat <- gh("/repos/:repo/stats/contributors", repo = repo, ...)
+  dat <- gh("/repos/:repo/stats/contributors", repo = repo)
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
+  # the structure of the data is:
+  # [{
+  #   author: ...,
+  #   weeks: [...]
+  # }]
   dat %<>%
     map(function(x) {
       if (is.atomic(x)) {
@@ -22,22 +27,30 @@ ScrapeContributors <- .ScrapeAndSave("contributors", function(repo, ...) {
     }) %>%
     do.call(rbind, .)
   if (ncol(dat) == 5) {
-    colnames(dat) <- c("week", "additions", "deletes", "commits", "author")
+    dat %<>%
+      mutate(
+        repo = UQ(repo),
+        week = parse_timestamp(w),
+        total = a + d + c) %>%
+      filter(total > 0) %>%
+      select(repo, week, author,
+             additions = a, deletions = d, commits = c)
     # set real number of weeks as an attribute, so we can use it for logging
     attr(dat, "real_n") <- nrow(dat) / length(unique(dat$author))
   }
   dat
 })
 ScrapePunchCard <- .ScrapeAndSave("punch_card", function(repo, ...) {
-  dat <- gh("/repos/:repo/stats/punch_card", repo = repo, ...)
+  dat <- gh("/repos/:repo/stats/punch_card", repo = repo)
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %<>% map(as.integer) %>%
     do.call(rbind, .) %>%
-    as.data.frame()
-  colnames(dat) <- c("day", "hour", "commits")
-  dat$repo <- repo
+    as.data.frame() %>%
+    # add `repo` as a column
+    mutate(repo = repo) %>%
+    select(repo, day = V1, hour = V2, commits = V3)
   dat
 })
 

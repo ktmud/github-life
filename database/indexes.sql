@@ -1,5 +1,10 @@
 -- Add indexes =================================
 -- do this only after all data were inserted!
+ALTER TABLE `g_users`
+  ADD UNIQUE INDEX (`login`);
+
+ALTER TABLE `g_contributors`
+  ADD UNIQUE INDEX (`repo`, `week`, `author`);
 
 ALTER TABLE `g_languages`
   ADD UNIQUE INDEX (`repo`, `lang`),

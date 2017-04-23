@@ -27,14 +27,19 @@ LoadToMySQL <- function(con) {
     str_replace(".csv$", "")
   
   load.sql <- "database/load.sql"
-  cat("SET foreign_key_checks = 0;", file = load.sql)
+  cat("SET foreign_key_checks = 0;\n", file = load.sql)
   for (i in seq_along(tables)) {
     cat(sprintf("
-LOAD DATA INFILE '%s'
-IGNORE INTO TABLE `g_%s` CHARACTER SET utf8mb4;
+LOAD DATA LOCAL INFILE '%s'
+IGNORE INTO TABLE `g_%s` CHARACTER SET UTF8
+FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\"'
+LINES TERMINATED BY '\\n'
+IGNORE 1 LINES;
 ", files[i], tables[i]), file = load.sql, append = TRUE)
   }
-  dbGetQuery(con, read_file(load.sql))
+  # RMySQL doesn't support this,
+  # you'd run the scripts manually
+  # dbExecute(con, read_file(load.sql))
 }
 
 ImportToMySQL <- function() {

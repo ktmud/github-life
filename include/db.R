@@ -1,4 +1,3 @@
-## Dev version of these pkgs are required.
 library(DBI)
 library(RMySQL)
 

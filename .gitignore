@@ -4,6 +4,8 @@
 .Renviron
 .Rhistory
 
+Icon*
+
 *.zip
 *.csv
 *.rds

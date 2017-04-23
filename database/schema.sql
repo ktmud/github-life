@@ -4,19 +4,19 @@
 
 DROP TABLE IF EXISTS `g_repo`;
 CREATE TABLE `g_repo` (
-`id` INT(11) NOT NULL,
+`id` INT(11) UNSIGNED NOT NULL,
 `owner_id` INT(11) UNSIGNED NOT NULL,
 `owner_login` INT(11) UNSIGNED NOT NULL,
 `name` VARCHAR(100) NOT NULL,
 `lang` VARCHAR(255) NOT NULL,
-`forks_count` MEDIANINT(7) UNSIGNED NOT NULL DEFAULT 0,
+`forks_count` MEDIUMINT(7) UNSIGNED NOT NULL DEFAULT 0,
 `stargazers_count` INT(7) UNSIGNED NOT NULL DEFAULT 0,
 `size` INT(11) UNSIGNED NOT NULL,
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
 `updated_at` TIMESTAMP NOT NULL DEFAULT 0,
 `pushed_at` TIMESTAMP NOT NULL DEFAULT 0,
-`parent_id` INT(11) NULL,
-`source_id` INT(11) NULL,
+`parent_id` INT(11) UNSIGNED NULL,
+`source_id` INT(11) UNSIGNED NULL,
 `description` TEXT CHARACTER SET utf8mb4
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
@@ -37,7 +37,7 @@ DROP TABLE IF EXISTS `g_punch_card`;
 CREATE TABLE `g_punch_card` (
 `day` TINYINT(2) ZEROFILL NOT NULL,
 `hour` TINYINT(2) ZEROFILL NOT NULL,
-`commits` MEDIUMINT(11) NOT NULL
+`commits` SMALLINT(11) UNSIGNED NOT NULL
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
@@ -45,17 +45,17 @@ DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_issues`;
 CREATE TABLE `g_issues` (
-`id` INT(11) NOT NULL,
+`id` INT(11) UNSIGNED NOT NULL,
 `is_pull_request` TINYINT(1) NOT NULL DEFAULT 0,
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
-`user_id` INT(11) NOT NULL,
+`user_id` INT(11) UNSIGNED NOT NULL,
 -- `user_login` is a dedundent column to make it easier to
 -- reuse GHTorrent data
 `user_login` VARCHAR(40) NOT NULL,
 `repo` VARCHAR(141) NOT NULL,
 `state` VARCHAR(10) NOT NULL,
-`number` INT(10) NOT NULL,
-`comments` INT(11) NOT NULL DEFAULT 0,
+`number` MEDIUMINT(10) UNSIGNED NOT NULL,
+`comments` SMALLINT(11) UNSIGNED NOT NULL DEFAULT 0,
 `closed_at` TIMESTAMP NULL,
 `updated_at` TIMESTAMP NULL,
 `title` TEXT CHARACTER SET utf8mb4,
@@ -68,21 +68,20 @@ DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_users`;
 CREATE TABLE `g_users` (
-`id` INT(11) NOT NULL,
+`id` INT(11) UNSIGNED NOT NULL,
 `login` VARCHAR(40) NOT NULL,
-PRIMARY KEY (`id`),
-UNIQUE KEY (`login`)
+PRIMARY KEY (`id`)
 ) ENGINE = MyISAM
 DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_issue_events`;
 CREATE TABLE g_issue_events (
-`id` INT(11) NOT NULL,
+`id` INT(11) UNSIGNED NOT NULL,
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
-`issue_id` INT(11) NOT NULL,
+`issue_id` INT(11) UNSIGNED NOT NULL,
 `event` VARCHAR(30) NOT NULL DEFAULT '',
 `repo` VARCHAR(141) NOT NULL,
-`actor_id` INT(11) NOT NULL,
+`actor_id` INT(11) UNSIGNED NOT NULL,
 `actor_login` VARCHAR(40) NOT NULL,
 `commit_id` VARCHAR(40) NULL,
 PRIMARY KEY (id)
@@ -93,9 +92,9 @@ DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_issue_comments`;
 CREATE TABLE g_issue_comments (
-`id` INT(11) NOT NULL,
-`issue_id` INT(11) NOT NULL,
-`user_id` INT(11) NOT NULL,
+`id` INT(11) UNSIGNED NOT NULL,
+`issue_id` INT(11) UNSIGNED NOT NULL,
+`user_id` INT(11) UNSIGNED NOT NULL,
 `user_login` VARCHAR(40) NOT NULL,
 `repo` VARCHAR(141) NOT NULL,  -- extraneous column
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
@@ -109,8 +108,8 @@ DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_stargazers`;
 CREATE TABLE g_stargazers (
-`repo` VARCHAR(141) NOT NULL,  -- extraneous column
-`user_id` INT(11) NOT NULL,
+`repo` VARCHAR(141) NOT NULL,
+`user_id` INT(11) UNSIGNED NOT NULL,
 `user_login` VARCHAR(40) NOT NULL,
 `starred_at` TIMESTAMP NOT NULL DEFAULT 0
 ) ENGINE = INNODB
@@ -120,20 +119,24 @@ DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_contributors`;
 CREATE TABLE g_contributors (
+`repo` VARCHAR(141) NOT NULL,
 `week` TIMESTAMP NOT NULL DEFAULT 0,
-`additions` INT(8) NOT NULL,
-`deletions` INT(8) NOT NULL,
-`commits` INT(8) NOT NULL,
 `author` VARCHAR(40) NOT NULL,
+`additions` SMALLINT(8) UNSIGNED NOT NULL,
+`deletions` SMALLINT(8) UNSIGNED NOT NULL,
+`commits` SMALLINT(8) UNSIGNED NOT NULL
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
 DEFAULT CHARACTER SET = utf8;
 
 -- some other useful stuff ====================
--- determine the maximum length of user login
+
+-- the length of the `repo` is defined by these two
+-- numbers adding together, plus a "/" character
 -- select max(char_length(`login`)) from users;
 -- select max(char_length(`name`)) from projects;
+
 -- show server configuration
 -- show variables;
 -- show running connections;

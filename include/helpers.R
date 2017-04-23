@@ -49,6 +49,14 @@ parse_datetime <- function(x) {
     readr::parse_datetime(x) %>% format("%F %T")
   )
 }
+parse_timestamp <- function(x) {
+  # parse UNIX timestamp into standard date string
+  ifelse(
+    is.null(x), NA,
+    as.POSIXct(x, origin = "1970-01-01", tz = "UTC") %>%
+      format("%F %T")
+  )
+}
 
 safe_val <- function(x) {
   # make sure X is not null
