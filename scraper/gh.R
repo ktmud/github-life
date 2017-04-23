@@ -51,12 +51,10 @@ GetAToken <- function(tried = list()) {
 
 .TokenLimitReached <- function(tk) {
   n_workers <- .GlobalEnv$n_workers
-  if (is.null(n_workers)) {
-    n_workers <- 1
-  }
+  if (is.null(n_workers)) n_workers <- 1
   !is.null(tk$remaining) &&
-    tk$remaining <= length(tokens) * (n_workers + 1) &&
-    tk$wait_until > Sys.time()
+      tk$remaining <= length(tokens) * n_workers &&
+      tk$wait_until > Sys.time()
 }
 
 .SaveRateLimit <- function(token, res = NULL, response = NULL) {
@@ -68,10 +66,10 @@ GetAToken <- function(tried = list()) {
   }
   remaining <- as.integer(response$`x-ratelimit-remaining`)
   # XXX: for debug
-  # if (token_i %% 2 == 0) {
-  #   remaining <- 1
-  # }
-  wait_until <- as.integer(response$`x-ratelimit-reset`) %>%
+  # if (token_i %% 2 == 0)   remaining <- 1
+  # save wait until time to real time, +5s to accomodate
+  # time difference between github and our server
+  wait_until <- (as.integer(response$`x-ratelimit-reset`) + 5) %>%
     as.POSIXct(origin="1970-01-01", tz = "UTC")
   tokens[[token]] <<- list(
     token = token,
@@ -118,11 +116,8 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   
   err <- NULL
   err_full <- NULL
-  tryCatch({
-    res <- do.call(gh::gh, args)
-    # save rate limit whenever we had a response
-    .SaveRateLimit(token, res)
-  }, error = function(x) {
+  
+  handle_error <- function(x) {
     err_full <<- x
     if (is.list(x$headers)) {
       err <<- x$headers$status
@@ -130,11 +125,15 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     } else {
       err <<- x
     }
-  })
+    # for debug
+    assign("gh_err_full", err_full, envir = .GlobalEnv)
+  }
   
-  # for debug
-  gh_err_full <<- err_full
-  gh_err <<- err
+  tryCatch({
+    res <- do.call(gh::gh, args)
+    # save rate limit whenever we had a response
+    .SaveRateLimit(token, res)
+  }, error = handle_error)
   
   # handle exceptions
   if (!is.null(err)) {
@@ -164,12 +163,15 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # all tokens tried, stop
       if (retry_count > length(tokens)) {
         cat("ERROR while scraping", err_full, "\n")
-        stop(err)
+        warning(err)
+        # return NULL
+        # don't break the flow
+        return()
       }
       cat("ERROR:", err, "\n")
       cat("Retry:", retry_count + 1, "\n")
-      # each retry will use a new token
       Sys.sleep(5)
+      # each retry will get a new token
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
     }
     # other types of errors, we let it fail, but will
@@ -177,10 +179,14 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     stop(err)
   }
   
+  n_workers <- .GlobalEnv$n_workers
+  if (is.null(n_workers)) n_workers <- 1
+  retry_count <- 0
+  
   # we are rewriting this .limit logic because we need to
   # check rate limit here
   while (!is.null(.limit) && length(res) < .limit && gh_has_next(res)) {
-    if (verbose) cat("Fetching:", next_page(res))
+    if (verbose) cat("\nFetching:", next_page(res))
     # get a new token
     new_token <- GetAToken()
     if (new_token != token) {
@@ -189,16 +195,30 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       attr(res, ".send_headers") <- headers
       token <- new_token
     }
+    
+    Sys.sleep(n_workers / 50)  # github might complain if we do this too fast
+    
     res2 <- NULL
     tryCatch({
-      Sys.sleep(0.2)  # github might complain if we do this too fast
       res2 <- gh::gh_next(res)
-    }, error = warning)
-    if (retry_count < length(tokens) && is.null(res2)) {
-      # this will go back to the beginning of the loop
-      # and try to get a new token
-      retry_count <- retry_count + 1
-      next
+    }, error = handle_error)
+    
+    # if return is NULL, means request failed
+    if (is.null(res2)) {
+      if (retry_count < length(tokens)) {
+        # this will go back to the beginning of the loop
+        # and try to get a new token. If no token is available,
+        # it will always wait.
+        retry_count <- retry_count + 1
+        next
+      } else if (length(res) < 1000) {
+        # if not every page is successful, and the data are small
+        # we might just discard the data any way
+        return()
+      } else {
+        # otherwise we might just as well bear with what we have
+        return(res)
+      }
     }
     res3 <- c(res, res2)
     attributes(res3) <- attributes(res2)

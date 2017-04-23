@@ -1,14 +1,21 @@
+# set this to the directory you want (in environment variable)
+kDataDir <- Sys.getenv("GITHUB_DATA_DIR")
+if (kDataDir == "") {
+  # set default data directory
+  kDataDir <- "./github_data"
+}
+
 # When we need to save data as a file
 fname <- function(repo, category, ext = ".csv") {
   # rename because of existing data
   # if (category == "contributors") {
   #   category = "contributions"
   # }
-  dname <- str_c(kDataDir, category)
+  dname <- file.path(kDataDir, category)
   if (!dir.exists(dname)) {
     dir.create(dname, recursive = TRUE)
   }
-  str_c(dname, "/", str_replace(repo, "/", " - "), ext)
+  file.path(dname, str_c(str_replace(repo, "/", " - "), ext))
 }
 
 parse_datetime <- function(x) {

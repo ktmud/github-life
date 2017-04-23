@@ -4,8 +4,6 @@ library(magrittr)
 library(stringr)
 library(lubridate)
 
-# change this to the directory you want
-kDataDir <- "/srv/github_data/"
 # cache all available repos in global memory (this might be faster than you thought)
 if (!exists("kAllRepos")) {
   kAllRepos <- read_csv("data/popular_repos.csv") 

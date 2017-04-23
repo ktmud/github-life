@@ -1,9 +1,9 @@
 ##
 # Scrape repo details
 #
-ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo) {
+ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo, ...) {
   # Scrape all issues of a repo
-  dat <- gh("/repos/:repo", repo = repo)
+  dat <- gh("/repos/:repo", repo = repo, ...)
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())

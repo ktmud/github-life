@@ -1,11 +1,11 @@
 source("include/init.R")
 source("include/helpers.R")
-source("include/scraper/gh.R")
-source("include/scraper/repo.R")
-source("include/scraper/languages.R")
-source("include/scraper/stats.R")
-source("include/scraper/issues.R")
-source("include/scraper/stargazers.R")
+source("scraper/gh.R")
+source("scraper/repo.R")
+source("scraper/languages.R")
+source("scraper/stats.R")
+source("scraper/issues.R")
+source("scraper/stargazers.R")
 
 pad <- function(x, n = 4, side = "left") {
   # pad numbers for better messaging
@@ -157,4 +157,4 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg("")
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
-ScrapeAll(offset = 0, n_max = 2000)
+ScrapeAll(offset = 0, n_max = 2500)

@@ -3,7 +3,6 @@
 #
 library(future)
 library(parallel)
-
 source("include/init.R")
 
 n_workers <- 6
