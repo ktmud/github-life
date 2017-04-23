@@ -1,33 +1,45 @@
 #
 # Store scraped data into database.
 #
+source("include/init.R")
 source("include/db.R")
 
 ExecuteSQL <- function(sql, con) {
   # execute multi line SQL queries
-  strsplit(sql, ";\n") %>% unlist() %>%
-    sapply(function(x) dbExecute(con, x)) %>%
-    unlist()
+  sql %>%
+    # remove comments
+    str_replace_all("--.*?\\n", "\n") %>%
+    str_trim() %>%
+    str_split(";") %>%
+    unlist() %>%
+    discard(function(x) x == "") %>%
+    str_trim() %>%
+    walk(function(x) {
+      message("> ", x)
+      message("> ", dbExecute(con, x))
+    })
 }
-# schema <- read_file("include/schema.sql") %>%
-#   str_split(";\n+")
-# ExecuteSQL(schema)
-
-system("merge.sh")
-
-LoadToMySQL <- function() {
+LoadToMySQL <- function(con) {
   # Use MySQL LOAD INFILE to import stored data
   files <- Sys.glob("/tmp/github__*.csv")
   tables <- files %>%
     str_replace("/tmp/github__", "") %>%
     str_replace(".csv$", "")
+  
+  load.sql <- "database/load.sql"
+  cat("SET foreign_key_checks = 0;", file = load.sql)
   for (i in seq_along(tables)) {
-    dbExecute(sprintf("
-      SET foreign_key_checks = 0;
-      LOAD DATA INFILE '%s' INTO TABLE %s CHARACTER SET UTF8
-      FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
-      LINES TERMINATED BY '\n';
-    ", files[i], tables[i]))
+    cat(sprintf("
+LOAD DATA INFILE '%s'
+IGNORE INTO TABLE `g_%s` CHARACTER SET utf8mb4;
+", files[i], tables[i]), file = load.sql, append = TRUE)
   }
+  dbGetQuery(con, read_file(load.sql))
 }
-LoadToMySQL()
+
+ImportToMySQL <- function() {
+  schema <- read_file("database/schema.sql")
+  ExecuteSQL(schema, db$con)
+  system("database/merge.sh")
+  LoadToMySQL(db$con)
+}

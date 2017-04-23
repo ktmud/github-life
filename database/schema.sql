@@ -1,22 +1,43 @@
 -- Prefix "g_" means these are fresh data scraped from Github directly
 -- the ID columns cannot be matched against GHTorrent data,
 -- must unique names such as user.login, and projects.name instead.
-DROP TABLE IF EXISTS `g_projects`;
-CREATE TABLE `g_projects` (
+
+DROP TABLE IF EXISTS `g_repo`;
+CREATE TABLE `g_repo` (
 `id` INT(11) NOT NULL,
-`owner_id` INT(11) NOT NULL,
-`owner_login` INT(11) NOT NULL,
+`owner_id` INT(11) UNSIGNED NOT NULL,
+`owner_login` INT(11) UNSIGNED NOT NULL,
 `name` VARCHAR(100) NOT NULL,
 `lang` VARCHAR(255) NOT NULL,
-`forks_count` INT(7) NOT NULL DEFAULT 0,
-`stargazers_count` INT(7) NOT NULL DEFAULT 0,
-`size` INT(11) NOT NULL,
+`forks_count` MEDIANINT(7) UNSIGNED NOT NULL DEFAULT 0,
+`stargazers_count` INT(7) UNSIGNED NOT NULL DEFAULT 0,
+`size` INT(11) UNSIGNED NOT NULL,
 `created_at` TIMESTAMP NOT NULL DEFAULT 0,
 `updated_at` TIMESTAMP NOT NULL DEFAULT 0,
 `pushed_at` TIMESTAMP NOT NULL DEFAULT 0,
 `parent_id` INT(11) NULL,
 `source_id` INT(11) NULL,
-`description` TEXT CHARACTER SET utf8mb4 NOT NULL DEFAULT '' 
+`description` TEXT CHARACTER SET utf8mb4
+) ENGINE = INNODB
+ROW_FORMAT = COMPRESSED
+KEY_BLOCK_SIZE = 1
+DEFAULT CHARACTER SET = utf8;
+
+DROP TABLE IF EXISTS `g_languages`;
+CREATE TABLE `g_languages` (
+`repo` VARCHAR(100) NOT NULL,
+`lang` VARCHAR(255) NOT NULL,
+`size` INT(11) UNSIGNED NOT NULL
+) ENGINE = INNODB
+ROW_FORMAT = COMPRESSED
+KEY_BLOCK_SIZE = 1
+DEFAULT CHARACTER SET = utf8;
+
+DROP TABLE IF EXISTS `g_punch_card`;
+CREATE TABLE `g_punch_card` (
+`day` TINYINT(2) ZEROFILL NOT NULL,
+`hour` TINYINT(2) ZEROFILL NOT NULL,
+`commits` MEDIUMINT(11) NOT NULL
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
@@ -97,12 +118,22 @@ ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
 DEFAULT CHARACTER SET = utf8;
 
+DROP TABLE IF EXISTS `g_contributors`;
+CREATE TABLE g_contributors (
+`week` TIMESTAMP NOT NULL DEFAULT 0,
+`additions` INT(8) NOT NULL,
+`deletions` INT(8) NOT NULL,
+`commits` INT(8) NOT NULL,
+`author` VARCHAR(40) NOT NULL,
+) ENGINE = INNODB
+ROW_FORMAT = COMPRESSED
+KEY_BLOCK_SIZE = 1
+DEFAULT CHARACTER SET = utf8;
 
 -- some other useful stuff ====================
 -- determine the maximum length of user login
 -- select max(char_length(`login`)) from users;
 -- select max(char_length(`name`)) from projects;
-
 -- show server configuration
 -- show variables;
 -- show running connections;

@@ -24,5 +24,5 @@ for category in `ls ./`; do
   # add a `github__` prefix so we can locate the files more easily
   head -n 1 "${files[0]}" > "/tmp/github__${category}.csv" ;
   # skip the first line of all files under in the category directory
-  tail -q -n +2 "${files[0]}" >> "/tmp/github__${category}.csv"
+  tail -q -n +2 $pattern >> "/tmp/github__${category}.csv"
 done

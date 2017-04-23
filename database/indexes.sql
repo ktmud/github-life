@@ -1,5 +1,10 @@
 -- Add indexes =================================
 -- do this only after all data were inserted!
+
+ALTER TABLE `g_languages`
+  ADD UNIQUE INDEX (`repo`, `lang`),
+  ADD INDEX ALGORITHM = INPLACE;
+
 ALTER TABLE `g_stargazers`
   ADD INDEX (`user_id`),
   ADD INDEX (`user_login`),
