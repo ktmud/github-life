@@ -9,21 +9,25 @@ pad <- function(x, n = 4, side = "left") {
   # pad numbers for better messaging
   str_pad(x, n, side = side)
 }
-msg <- function(..., appendLF = TRUE) {
-  cat(...)
-  if (appendLF) cat("\n")
-}
 if (is.null(.GlobalEnv$logfile)) {
   cat_dest <- NULL
 } else {
   cat_dest <- file(.GlobalEnv$logfile, "a")
 }
 cat <- function(...) {
+  args <- str_c(..., collapse = " ")
   if (!is.null(cat_dest)) {
     base::cat(..., file = cat_dest)
   } else {
     base::cat(...)
   }
+}
+msg <- function(..., appendLF = TRUE) {
+  # the different between `cat` and `msg`
+  # is that `msg` by default appendLF
+  args <- str_c(..., collapse = " ")
+  cat(args)
+  if (appendLF) cat("\n")
 }
 
 # When we need to save data as a file

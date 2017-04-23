@@ -18,8 +18,8 @@ if (is.null(n_workers)) {
   n_workers <- 1
 }
 # interval between each request, only applies to pagination requests
-# -0.2s is the average time cost for each request to finish
-sleep_length <- max(0, 60*60 / 5000 / length(tokens) * n_workers - 0.2)
+# -0.2s is the average time cost for each request to finish,
+sleep_length <- max(0, 60*60 / 5000 / length(tokens) * n_workers - 0.3)
 
 GetAToken <- function(tried = list()) {
   # Get a new token to use. Will check rate limit automatically.
@@ -74,7 +74,7 @@ GetAToken <- function(tried = list()) {
   }
   if (is.null(response$`x-ratelimit-reset`)) {
     # no information found, skip
-    msg("BAD reseponse for rate limit check: ", response, "")
+    msg("BAD reseponse for rate limit check:", response, "")
     return(FALSE)
   }
   remaining <- as.integer(response$`x-ratelimit-remaining`)
@@ -130,7 +130,6 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   args$per_page <- 100  # always request maximum number of data
   
   err <- NULL
-  err_full <- NULL
   
   handle_error <- function(x) {
     err_full <<- x
@@ -140,7 +139,8 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     } else {
       err <<- x
     }
-    msg(x)
+    msg("Error while scraping", repo, ": ", err)
+    warning(x)
     # for debug
     assign("gh_err_full", err_full, envir = .GlobalEnv)
   }
@@ -178,13 +178,10 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
                    "502", "502 Server Error")) {
       # all tokens tried, stop
       if (retry_count > length(tokens)) {
-        msg("ERROR while scraping", err_full, "\n")
-        msg(err)
         # return NULL
         # don't break the flow
         return()
       }
-      msg("ERROR:", err, "\n")
       msg("Retry:", retry_count + 1, "\n")
       Sys.sleep(5)
       # each retry will get a new token
