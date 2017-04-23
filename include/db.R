@@ -25,14 +25,16 @@ if (!db.ok) {
   names(ght.tables) <- ght.tables
   ght <- lapply(ght.tables, function(x) tbl(db, x))
   
-  # Necessary for EMOJIs! :), otherwise the `g_issues.title` column
-  # may complain
+  # Necessary for EMOJIs! :), otherwise some text columns
+  # such as `g_issues.title` may complain
   dbExecute(db$con, "SET NAMES utf8mb4")
 }
 
 
 # ======== Database functions ====================
-
+#
+# These functions are not actually in use.
+#
 SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
   # remove existing data then save the latest data to database
   # Args:

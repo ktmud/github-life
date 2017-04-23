@@ -1,12 +1,17 @@
-# make tokens a list, so we can save extra info such as rate limit
-.tokens <- Sys.getenv("GITHUB_TOKENS") %>% str_trim() %>%
-  str_split("\\s+", simplify = TRUE) %>%
-  as.character()
-tokens <- as.list(rep(NA, length(.tokens)))
-names(tokens) <- .tokens
-tokens[1:length(tokens)] <- map(.tokens, function(x) {
-  list(token = x)
-})
+# initially we don't have rate limit info, and will add that
+# to the tokens object while running, so we don't want to
+# accidentally cleared that up again
+if (!exists("tokens")) {
+  # make tokens a list, so we can save extra info such as rate limit
+  .tokens <- Sys.getenv("GITHUB_TOKENS") %>% str_trim() %>%
+    str_split("\\s+", simplify = TRUE) %>%
+    as.character()
+  tokens <- as.list(rep(NA, length(.tokens)))
+  names(tokens) <- .tokens
+  tokens[1:length(tokens)] <- map(.tokens, function(x) {
+    list(token = x)
+  })
+}
 
 # index of current token in use
 # each process should begin with a random pattern
@@ -47,7 +52,7 @@ GetAToken <- function(tried = list()) {
       # time difference in seconds
       wait_secs <- (tk$wait_until - Sys.time()) %>%
         as.numeric(units = "secs") %>% max(0)
-      msg("> rate limit reached, wait for ", wait_secs, " secs.")
+      msg("\n> rate limit reached, wait for ", wait_secs, " secs.")
       Sys.sleep(wait_secs)
       # waited enough time, reset this token's wait time
       tokens[[tk$token]] <<- list(token = tk$token)
@@ -60,10 +65,13 @@ GetAToken <- function(tried = list()) {
 }
 
 .TokenLimitReached <- function(tk) {
-  !is.null(tk$remaining) &&
-    !is.na(tk$remaining) &&
-    tk$remaining <= (length(tokens) * n_workers) &&
-    tk$wait_until > Sys.time()
+  if (is.null(tk$remaining) || is.na(tk$remaining)) return(FALSE)
+  # if the wait until time is earlier than now, reset this token
+  if (!is.null(tk$wait_until) && tk$wait_until < Sys.time()) {
+    tokens[[tk$token]] <<- list(token = tk$token)
+    return(FALSE)
+  }
+  tk$remaining <= (length(tokens) * n_workers)
 }
 
 .SaveRateLimit <- function(token, res = NULL, response = NULL) {
@@ -181,7 +189,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
         # don't break the flow
         return()
       }
-      msg("Retry:", retry_count + 1, "\n")
+      msg("Retry:", retry_count + 1)
       Sys.sleep(5)
       # each retry will get a new token
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
@@ -255,16 +263,24 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   #  else
   #    number of records scraped
   #  whose first two parameters will always be `repo` and `skip_existing`
-  return(function(repo, skip_existing = TRUE, ...) {
+  return(function(repo, skip_existing = TRUE,
+                  l_name = NULL, l_n = 5,
+                  l_add_pipe = TRUE, ...) {
     fpath <- fname(repo, category)
     fsize <- file.size(fpath)
     # if ths file exists and size is not zero, skip
     if (skip_existing && !is.na(fsize) && fsize != 0) {
+      if (!is.null(l_name)) {
+        cat(pad(".", l_n), l_name)
+      }
       return(-1)
     }
     dat <- scraper(repo, ...)
     # return NULL if resource not available
-    if (is.null(dat)) return()
+    if (is.null(dat)) {
+      if (!is.null(l_name)) msg("(X) GONE.  ")
+      return()
+    }
     # only save data when there is data
     n <- attr(dat, "real_n")
     if (is.null(n)) {
@@ -274,6 +290,10 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # last_dat <<- dat
       # last_path <<- fpath
       write_csv(dat, fpath)
+    }
+    if (!is.null(l_name)) {
+      cat(pad(n, l_n), l_name)
+      if (l_add_pipe) cat(" | ")
     }
     return(n)
   })

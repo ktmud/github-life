@@ -4,15 +4,16 @@ if (kDataDir == "") {
   # set default data directory
   kDataDir <- "./github_data"
 }
-
-pad <- function(x, n = 4, side = "left") {
-  # pad numbers for better messaging
-  str_pad(x, n, side = side)
-}
+# where the `cat` output goes
 if (is.null(.GlobalEnv$logfile)) {
   cat_dest <- NULL
 } else {
   cat_dest <- file(.GlobalEnv$logfile, "a")
+}
+
+pad <- function(x, n = 4, side = "left") {
+  # add spaces to numbers for better messaging
+  str_pad(x, n, side = side)
 }
 cat <- function(...) {
   args <- str_c(..., collapse = " ")
@@ -29,20 +30,15 @@ msg <- function(..., appendLF = TRUE) {
   cat(args)
   if (appendLF) cat("\n")
 }
-
-# When we need to save data as a file
 fname <- function(repo, category, ext = ".csv") {
-  # rename because of existing data
-  # if (category == "contributors") {
-  #   category = "contributions"
-  # }
+  # generate the data file name for a repo
+  # make the directory if necessary
   dname <- file.path(kDataDir, category)
   if (!dir.exists(dname)) {
     dir.create(dname, recursive = TRUE)
   }
   file.path(dname, str_c(str_replace(repo, "/", " - "), ext))
 }
-
 parse_datetime <- function(x) {
   # use conditional comparing so x can be a vector
   if (length(x) == 0) return(NA)
@@ -56,7 +52,6 @@ parse_timestamp <- function(x) {
     as.POSIXct(origin = "1970-01-01", tz = "UTC") %>%
     format("%F %T")
 }
-
 safe_val <- function(x) {
   # make sure X is not null
   # Args:

@@ -18,7 +18,8 @@ if (exists("cl")) {
 # cleanup log files
 unlink("/tmp/github-scrape-*.log")
 
-GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
+GenExpression <- function(i, partition, list_fun = "ListRandomRepos",
+                          fetcher = "FetchAll") {
   parse(
     text = sprintf(
       'if (!exists("ScrapeAll")) {
@@ -28,19 +29,13 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos") {
         # sink("/dev/null")  # all normal messages go to limbo
         source("scrape.R")
       }
-      ScrapeAll(offset = %s, n_max = %s, list_fun = %s,
-                skip_existing = FALSE,
-                scrape_languages = FALSE,
-                scrape_stats = TRUE,
-                scrape_issues = FALSE,
-                scrape_issue_events = FALSE,
-                scrape_issue_comments = FALSE,
-                verbose = TRUE)
+      ScrapeAll(offset = %s, n_max = %s, list_fun = %s, fetcher = %s)
       ',
       n_workers,
       partition[i],
       partition[i + 1],
-      list_fun
+      list_fun,
+      fetcher
     )
   )
 }
