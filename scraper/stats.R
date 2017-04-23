@@ -36,7 +36,7 @@ ScrapeContributors <- .ScrapeAndSave("contributors", function(repo, ...) {
       select(repo, week, author,
              additions = a, deletions = d, commits = c)
     # set real number of weeks as an attribute, so we can use it for logging
-    attr(dat, "real_n") <- nrow(dat) / length(unique(dat$author))
+    attr(dat, "real_n") <- length(unique(dat$week))
   }
   dat
 })

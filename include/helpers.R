@@ -44,18 +44,17 @@ fname <- function(repo, category, ext = ".csv") {
 }
 
 parse_datetime <- function(x) {
-  ifelse(
-    is.null(x), NA,
-    readr::parse_datetime(x) %>% format("%F %T")
-  )
+  # use conditional comparing so x can be a vector
+  if (length(x) == 0) return(NA)
+  readr::parse_datetime(x) %>% format("%F %T")
 }
 parse_timestamp <- function(x) {
   # parse UNIX timestamp into standard date string
-  ifelse(
-    is.null(x), NA,
-    as.POSIXct(x, origin = "1970-01-01", tz = "UTC") %>%
-      format("%F %T")
-  )
+  if (length(x) == 0) return(NA)
+  x %>% unlist() %>%
+    as.integer() %>%
+    as.POSIXct(origin = "1970-01-01", tz = "UTC") %>%
+    format("%F %T")
 }
 
 safe_val <- function(x) {
