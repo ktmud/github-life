@@ -52,11 +52,11 @@ parse_timestamp <- function(x) {
     as.POSIXct(origin = "1970-01-01", tz = "UTC") %>%
     format("%F %T")
 }
-safe_val <- function(x) {
+safe_val <- function(x, fallback = NA) {
   # make sure X is not null
   # Args:
   #   x - any object
   #   p - the sub property if any
-  if (is.null(x)) return(NA)
+  if (is.null(x)) return(fallback)
   return(x)
 }

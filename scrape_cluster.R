@@ -85,24 +85,23 @@ cl_execute <- function(fetcher) {
 
 # change this `n_total` for a smaller sample
 n_total <- nrow(kAllRepos)
-n_total <- 2500
+# n_total <- 2500
 partition <- seq(0, n_total + 1, 500)
 
-# Scrape different data categories one by one
-# scraping repo details will report number of stars
-# cl_execute('FetcherOf(ScrapeContributors, "weeks")')
+# 1. Scrape different data categories one by one
+cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
 cl_execute('FetcherOf(ScrapeIssues, "issues")')
 cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
 cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
 cl_execute('FetcherOf(ScrapePunchCard, NULL)')
 
-# Or, you can chose to scrape repository one by one
+# 2. Or, you can chose to scrape repository one by one
 # cl_excute("FetchAll")
 
 # must scrape contributors again because github returns empty results
 # when the stats were not in their cache
-cl_execute('FetcherOf(ScrapeContributors, "weeks")')
+# cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 
 # want until every process finishes,
 # then cleanup the logs

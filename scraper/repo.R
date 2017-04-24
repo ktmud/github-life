@@ -12,11 +12,11 @@ ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo, ...) {
     id = x$id,
     owner_id = safe_val(x$owner$id),
     owner_login = safe_val(x$owner$login),
-    name = x$name,
-    lang = x$lang,
-    forks_count = x$forks_count,
-    stargazers_count = x$stargazers_count,
-    size = x$size,
+    name = safe_val(x$name),
+    lang = safe_val(x$language),
+    forks_count = safe_val(x$forks_count, 0),
+    stargazers_count = safe_val(x$stargazers_count, 0),
+    size = safe_val(x$size, 0),
     created_at = parse_datetime(x$created_at),
     updated_at = parse_datetime(x$updated_at),
     pushed_at = parse_datetime(x$pushed_at),
@@ -27,6 +27,7 @@ ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo, ...) {
     # always return a data frame
     as.data.frame()
   # the `real_n` is for logging purpose
+  # report number of stars to downstream functions
   attr(ret, "real_n") <- x$stargazers_count
   ret
 })
