@@ -20,9 +20,9 @@ ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo, ...) {
     created_at = parse_datetime(x$created_at),
     updated_at = parse_datetime(x$updated_at),
     pushed_at = parse_datetime(x$pushed_at),
-    parent_id = safe_val(x$parent$id),
-    source_id = safe_val(x$source$id),
-    description = x$description
+    # parent_id = safe_val(x$parent$id),
+    # source_id = safe_val(x$source$id),
+    description = safe_val(x$description)
   ) %>% t() %>%
     # always return a data frame
     as.data.frame()
