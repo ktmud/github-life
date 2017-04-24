@@ -1,3 +1,5 @@
+SET global net_buffer_length=1048576;
+SET global max_allowed_packet=1073741824;
 SET foreign_key_checks = 0;
 
 LOAD DATA LOCAL INFILE '/tmp/github__contributors.csv'

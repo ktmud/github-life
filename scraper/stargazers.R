@@ -18,6 +18,6 @@ ScrapeStargazers <- .ScrapeAndSave("stargazers", function(repo, ...) {
         user_login = safe_val(x$user$login))
     }) %>%
     do.call(rbind, .) %>%
-    as.data.frame() %>%
+    as_tibble() %>%
     distinct(user_id, .keep_all = TRUE)
 })

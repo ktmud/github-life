@@ -8,13 +8,18 @@
 #       c(id = user$id, login = user$login)
 #     }) %>%
 #     do.call(rbind, .) %>%
-#     as.data.frame() %>%
+#     as_tibble() %>%
 #     distinct()
 #   SaveToTable("users", users)
 # }
-ScrapeIssues <- .ScrapeAndSave("issues", function(repo, state = "all", ...) {
+ScrapeIssues <- .ScrapeAndSave("issues", function(repo,
+                                                  state = "all",
+                                                  sort = "created",
+                                                  direction = "asc", ...) {
   # Scrape all issues of a repo
-  dat <- gh("/repos/:repo/issues", repo = repo, state = state, ...)
+  # Use direction `asc` to always scrape the latest items last
+  dat <- gh("/repos/:repo/issues", repo = repo, state = state,
+            sort = sort, direction = direction, ...)
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
@@ -33,10 +38,14 @@ ScrapeIssues <- .ScrapeAndSave("issues", function(repo, state = "all", ...) {
         updated_at = parse_datetime(x$updated_at),
         closed_at = parse_datetime(x$closed_at),
         title = safe_val(x$title),
-        body = safe_val(x$body))
+        # text body increases data size and
+        # slowing down insertions tremendously,
+        # maybe we dont really need it
+        body = safe_val(x$body)
+        )
     }) %>%
     do.call(rbind, .) %>%
-    as.data.frame() %>%
+    as_tibble() %>%
     distinct(id, .keep_all = TRUE)
 })
 
@@ -58,7 +67,7 @@ ScrapeIssueEvents <- .ScrapeAndSave("issue_events", function(repo, ...) {
         created_at = parse_datetime(x$created_at))
     }) %>%
     do.call(rbind, .) %>%
-    as.data.frame() %>%
+    as_tibble() %>%
     # XXX: filter out bad rows!
     filter(!is.na(actor_id) & !is.na(issue_id)) %>%
     distinct(id, .keep_all = TRUE)
@@ -70,9 +79,14 @@ get_issue_number <- function(x) {
     .[1, 2] %>% as.integer()
 }
 
-ScrapeIssueComments <- .ScrapeAndSave("issue_comments", function(repo, ...) {
+ScrapeIssueComments <- .ScrapeAndSave("issue_comments",
+                                      function(repo,
+                                               sort = "created",
+                                               direction = "asc",
+                                               ...) {
   # Scrape all issue commens of a repo
-  dat <- gh(str_c("/repos/", repo, "/issues/comments"), ...)
+  dat <- gh("/repos/:repo/issues/comments",
+            sort = sort, direction = direction, ...)
   if (is.null(dat)) return()
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %>%
@@ -88,6 +102,6 @@ ScrapeIssueComments <- .ScrapeAndSave("issue_comments", function(repo, ...) {
         body = safe_val(x$body))
     }) %>%
     do.call(rbind, .) %>%
-    as.data.frame() %>%
+    as_tibble() %>%
     distinct(id, .keep_all = TRUE)
 })

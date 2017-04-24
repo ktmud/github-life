@@ -12,7 +12,8 @@ ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo, ...) {
     id = x$id,
     owner_id = safe_val(x$owner$id),
     owner_login = safe_val(x$owner$login),
-    name = safe_val(x$name),
+    # `name` is a not NULL column, so why don't we set it to ""
+    name = safe_val(x$name, ""),
     lang = safe_val(x$language),
     forks_count = safe_val(x$forks_count, 0),
     stargazers_count = safe_val(x$stargazers_count, 0),

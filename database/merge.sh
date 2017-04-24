@@ -11,7 +11,7 @@ cd $data_dir
 mkdir -p ./combined
 
 for category in `ls ./`; do
-  if [[ $category == "combined" || $category =~ ".csv" ]]; then
+  if [[ $category == "combined" || -f $category ]]; then
     continue
   fi
   pattern="$data_dir/$category/*.csv"

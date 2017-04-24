@@ -14,8 +14,8 @@ if (exists("db")) {
 if (!db.ok) {
   db <- src_mysql(
     dbname = Sys.getenv("MYSQL_DBNAME"),
-    host = "127.0.0.1",
-    # host = Sys.getenv("MYSQL_HOST"),
+    # host = "127.0.0.1",
+    host = Sys.getenv("MYSQL_HOST"),
     port = as.integer(Sys.getenv("MYSQL_PORT")),
     user = Sys.getenv("MYSQL_USER"),
     password = Sys.getenv("MYSQL_PASSWD")

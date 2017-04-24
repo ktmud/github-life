@@ -18,6 +18,45 @@ library(ggplot2)
 ## Statistics
 
 ```{r}
+source("../include/db.R")
+```
+
+```{r}
+test <- ght$g_ %>% 
+  head(10) %>% 
+  collect()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
 setwd("D:/workspace_r")
 files <- list.files("./stats")
 ```

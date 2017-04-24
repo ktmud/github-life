@@ -47,7 +47,7 @@ ScrapePunchCard <- .ScrapeAndSave("punch_card", function(repo, ...) {
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %<>% map(as.integer) %>%
     do.call(rbind, .) %>%
-    as.data.frame() %>%
+    as_tibble() %>%
     # add `repo` as a column
     mutate(repo = repo) %>%
     select(repo, day = V1, hour = V2, commits = V3)
