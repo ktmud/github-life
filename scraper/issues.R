@@ -64,6 +64,12 @@ ScrapeIssueEvents <- .ScrapeAndSave("issue_events", function(repo, ...) {
     distinct(id, .keep_all = TRUE)
 })
 
+get_issue_number <- function(x) {
+  safe_val(x$issue_url) %>%
+    str_match("/issues/([0-9]+)") %>%
+    .[1, 2] %>% as.integer()
+}
+
 ScrapeIssueComments <- .ScrapeAndSave("issue_comments", function(repo, ...) {
   # Scrape all issue commens of a repo
   dat <- gh(str_c("/repos/", repo, "/issues/comments"), ...)
@@ -73,7 +79,7 @@ ScrapeIssueComments <- .ScrapeAndSave("issue_comments", function(repo, ...) {
     map(function(x) {
       # the order here must in line with the schema
       c(id = x$id,
-        issue_id = x$issue_id,
+        issue_number = get_issue_number(x),
         user_id = x$user$id, 
         created_at = parse_datetime(x$created_at),
         repo = repo,
