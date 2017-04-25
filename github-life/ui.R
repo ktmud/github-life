@@ -50,14 +50,18 @@ single_repo_tab <- div(
   ),
   div(
     id = "single-repo",
+    style = "display:none",
     fluidRow(
       box(
         width = 12,
-        title = htmlOutput("repo_timeline_title"),
+        title = div(
+          "Activity timeline of",
+          htmlOutput("repo_fullname", container = strong)
+        ),
+        plotlyOutput("repo_timeline", height = "350px"),
         div(class = "info",
           "Number of commits from top contributors and
-          number of new issues reported."),
-        plotlyOutput("repo_timeline", height = "350px")
+          number of new issues reported each week.")
       )
     )
   )

@@ -50,32 +50,22 @@ RangeSelector <- function(mindate, maxdate) {
 RepoStats <- function(repo,
                       col_name = "commits",
                       group_others = TRUE) {
-  f <- fname(repo, "contributions")
-  dat <- data.frame()
-  if (file.exists(f)) {
-    dat <- read_csv(f)
-  }
+  dat <- ght$g_contributors %>%
+    filter(repo == UQ(repo)) %>%
+    # show_query() %>%
+    collect()
   if (nrow(dat) > 0) {
     dat <- dat %>%
-      rename(
-        week = w,
-        author = author_login,
-        commits = c,
-        additions = a,
-        deletions = d
-      ) %>%
-      mutate(author = as.character(author))
-    # filter zero cols
-    dat <- dat[, c("week", col_name, "author")]
-    dat$count <- dat[[col_name]]
-    dat$week %<>%
-      as.integer() %>%
-      as.POSIXct(origin="1970-01-01") %>%
-      as.Date()
+      .[, c("week", "author", col_name)]
+    names(dat) <- c("week", "author", "count")
     top_author <- dat %>%
       group_by(author) %>%
       summarize(n = sum(count)) %>%
+      # we need this diff rate to filter out
+      # very small contributors
+      mutate(p = n / max(n)) %>%
       arrange(desc(n)) %>%
+      filter(p > .1) %>%
       head(5)
     dat.top <- dat %>%
       filter(author %in% top_author$author)
@@ -86,8 +76,7 @@ RepoStats <- function(repo,
       summarise(`count` = sum(count)) %>%
       mutate(author = "<i>others</i>") %>%
       bind_rows(dat.top)
-    # the data column will always be named "count"
-    dat[[col_name]] <- NULL
+    dat$week <- as.Date(dat$week)
   } else {
     # give an empty row
     dat <- data.frame(week = NA, author = NA, count = NA)
@@ -105,15 +94,17 @@ FillEmptyWeeks <- function(dat, mindate, maxdate) {
 }
 
 PlotRepoTimeline <- function(repo) {
-  issues <- ght$g_issues %>%
-    filter(repo == UQ(repo)) %>%
-    # inside {} is MySQL functions
-    group_by(week = { DATE(
-      SUBDATE(SUBDATE(created_at, WEEKDAY(created_at)), 1)
-    ) }) %>%
-    summarise(n_issues = n()) %>%
-    show_query() %>%
-    collect()
+  issues <- dbGetQuery(db$con, sprintf("
+    SELECT `week`, count(*) AS `n_issues`
+    FROM (
+      SELECT
+        `repo`,
+        DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`
+      FROM `g_issues`
+      WHERE `repo` = '%s'
+    ) AS t1
+    GROUP BY `week`
+  ", repo))
   repo_stats <- RepoStats(repo)
   
   mindate <- min(issues$week, repo_stats$week, na.rm = TRUE)
@@ -149,9 +140,6 @@ PlotIssuesTimeline <- function(repo) {
       SUBDATE(SUBDATE(created_at, WEEKDAY(created_at)), 1)
     ) }) %>%
     count(event) %>%
-    show_query() %>%
+    # show_query() %>%
     collect()
-  repo_stats <- RepoStats(repo)
 }
-
-PlotRepoTimeline("futuresimple/android-floating-action-button")
