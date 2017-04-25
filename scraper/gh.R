@@ -289,7 +289,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     if (n > 0) {
       # last_dat <<- dat
       # last_path <<- fpath
-      write_csv(dat, fpath)
+      write_csv(dat, fpath, na = "NULL")
     }
     if (!is.null(l_name)) {
       cat(pad(n, l_n), l_name)
