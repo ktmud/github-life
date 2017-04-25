@@ -7,7 +7,7 @@ library(parallel)
 
 source("include/init.R")
 
-n_workers <- 6
+n_workers <- 8
 # cleanup existing log files
 unlink("/tmp/github-scrape-*.log")
 
@@ -86,15 +86,15 @@ cl_execute <- function(fetcher) {
 # change this `n_total` for a smaller sample
 # n_total <- nrow(kAllRepos)
 n_total <- 2500
-partition <- seq(0, n_total + 1, 500)
+partition <- seq(0, n_total + 1, 200)
 
 # 1. Scrape different data categories one by one
 # cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 # cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
 
-cl_execute('FetcherOf(ScrapeLanguages, "lang")')
+# cl_execute('FetcherOf(ScrapeLanguages, "lang")')
 # cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
-# cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
+cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
 # cl_execute('FetcherOf(ScrapePunchCard, NULL)')
 # cl_execute('FetcherOf(ScrapeIssues, "issues")')
 

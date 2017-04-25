@@ -32,6 +32,7 @@ ScrapeContributors <- .ScrapeAndSave("contributors", function(repo, ...) {
         repo = UQ(repo),
         week = parse_timestamp(w),
         total = a + d + c) %>%
+      # remove unnecessary zero records
       filter(total > 0) %>%
       select(repo, week, author,
              additions = a, deletions = d, commits = c)
@@ -50,7 +51,9 @@ ScrapePunchCard <- .ScrapeAndSave("punch_card", function(repo, ...) {
     as_tibble() %>%
     # add `repo` as a column
     mutate(repo = repo) %>%
-    select(repo, day = V1, hour = V2, commits = V3)
+    select(repo, day = V1, hour = V2, commits = V3) %>%
+    # remove unnecessary zero records
+    filter(commits > 0)
   dat
 })
 

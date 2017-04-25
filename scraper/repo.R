@@ -14,7 +14,7 @@ ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo, ...) {
     owner_login = safe_val(x$owner$login),
     # `name` is a not NULL column, so why don't we set it to ""
     name = safe_val(x$name, ""),
-    lang = safe_val(x$language),
+    lang = safe_val(x$language, ""),
     forks_count = safe_val(x$forks_count, 0),
     stargazers_count = safe_val(x$stargazers_count, 0),
     size = safe_val(x$size, 0),
@@ -23,7 +23,7 @@ ScrapeRepoDetails <- .ScrapeAndSave("repo", function(repo, ...) {
     pushed_at = parse_datetime(x$pushed_at),
     # parent_id = safe_val(x$parent$id),
     # source_id = safe_val(x$source$id),
-    description = safe_val(x$description)
+    description = safe_val(x$description, "")
   ) %>% t() %>%
     # always return a data frame
     as.data.frame()

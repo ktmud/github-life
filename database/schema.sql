@@ -9,7 +9,7 @@ CREATE TABLE `g_users` (
 PRIMARY KEY (`id`),
 UNIQUE INDEX (`login`)  -- small tables have keys predefined
 ) ENGINE = InnoDB
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_repo`;
 CREATE TABLE `g_repo` (
@@ -26,14 +26,14 @@ CREATE TABLE `g_repo` (
 `pushed_at` TIMESTAMP NOT NULL DEFAULT 0,
 -- `parent_id` INT(11) UNSIGNED NULL,
 -- `source_id` INT(11) UNSIGNED NULL,
-`description` TEXT CHARACTER SET utf8mb4,
+`description` TEXT NOT NULL CHARACTER SET utf8mb4,
 PRIMARY KEY (`id`),
 INDEX (`lang`),
 UNIQUE INDEX (`owner_login`, `name`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_languages`;
 CREATE TABLE `g_languages` (
@@ -45,7 +45,7 @@ INDEX (`lang`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 2
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_contributors`;
 CREATE TABLE g_contributors (
@@ -59,7 +59,7 @@ UNIQUE INDEX (`repo`, `week`, `author`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_punch_card`;
 CREATE TABLE `g_punch_card` (
@@ -72,7 +72,7 @@ INDEX (`commits`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_issues`;
 CREATE TABLE `g_issues` (
@@ -95,7 +95,7 @@ PRIMARY KEY (`id`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_issue_events`;
 CREATE TABLE g_issue_events (
@@ -111,7 +111,7 @@ PRIMARY KEY (id)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 2
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_issue_comments`;
 CREATE TABLE g_issue_comments (
@@ -127,7 +127,7 @@ PRIMARY KEY (id)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 DROP TABLE IF EXISTS `g_stargazers`;
 CREATE TABLE g_stargazers (
@@ -138,7 +138,7 @@ CREATE TABLE g_stargazers (
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
-DEFAULT CHARACTER SET = utf8;
+DEFAULT CHARACTER SET = latin1;
 
 -- some other useful stuff ====================
 
@@ -146,7 +146,6 @@ DEFAULT CHARACTER SET = utf8;
 -- numbers adding together, plus a "/" character
 -- select max(char_length(`login`)) from users;
 -- select max(char_length(`name`)) from projects;
-
 -- show server configuration
 -- show variables;
 -- show running connections;

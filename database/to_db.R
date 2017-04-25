@@ -29,13 +29,19 @@ LoadToMySQL <- function(con) {
   load.sql <- "database/load.sql"
   cat("SET foreign_key_checks = 0;\n", file = load.sql)
   for (i in seq_along(tables)) {
+    # tables with text field needs true UTF8,
+    # others don't need
+    charset <- ifelse(tables[i] %in% c("issues", "issue_comments", "repo"),
+                      "CHARACTER SET UTF8MB4", "")
     cat(sprintf("
 LOAD DATA LOCAL INFILE '%s'
-IGNORE INTO TABLE `g_%s` CHARACTER SET UTF8MB4
+IGNORE INTO TABLE `g_%s` %s
 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\"'
 LINES TERMINATED BY '\\n'
 IGNORE 1 LINES;
-", files[i], tables[i]), file = load.sql, append = TRUE)
+", files[i], tables[i], charset
+),
+        file = load.sql, append = TRUE)
   }
   # RMySQL doesn't support this,
   # you'd run the scripts manually
