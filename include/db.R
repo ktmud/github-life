@@ -93,11 +93,9 @@ ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
 ListExistingRepos <- function(offset = 0, limit = 5) {
   dbGetQuery(db$con, sprintf(
     "
-    SELECT `repo`, `n_watchers` FROM `popular_projects` AS t1
-    WHERE EXISTS (
-      SELECT DISTINCT(repo) as repo FROM `g_issues` AS `t2`
-      WHERE (t1.repo = t2.repo)
-    )
+    SELECT concat(`owner_login`, '/', `name`) AS repo,
+          `stargazers_count` AS stars
+    FROM `g_repo`
     LIMIT %s OFFSET %s
     ", limit, offset
   ))

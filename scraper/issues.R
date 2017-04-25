@@ -78,14 +78,12 @@ get_issue_number <- function(x) {
     str_match("/issues/([0-9]+)") %>%
     .[1, 2] %>% as.integer()
 }
-
-ScrapeIssueComments <- .ScrapeAndSave("issue_comments",
-                                      function(repo,
-                                               sort = "created",
-                                               direction = "asc",
-                                               ...) {
+ScrapeIssueComments <- .ScrapeAndSave("issue_comments", function(repo,
+                                                                 sort = "created",
+                                                                 direction = "asc",
+                                                                 ...) {
   # Scrape all issue commens of a repo
-  dat <- gh("/repos/:repo/issues/comments",
+  dat <- gh("/repos/:repo/issues/comments", repo = repo,
             sort = sort, direction = direction, ...)
   if (is.null(dat)) return()
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())

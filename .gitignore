@@ -4,6 +4,8 @@
 .Renviron
 .Rhistory
 *.Rhistory
+rsconnect
+report
 
 Icon*
 
