@@ -1,6 +1,15 @@
 -- Prefix "g_" means these are fresh data scraped from Github directly
 -- the ID columns cannot be matched against GHTorrent data,
--- must unique names such as user.login, and projects.name instead.
+-- must use unique names such as user.login, and projects.name instead.
+
+DROP TABLE IF EXISTS `g_users`;
+CREATE TABLE `g_users` (
+`id` INT(11) UNSIGNED NOT NULL,
+`login` VARCHAR(40) NOT NULL,
+PRIMARY KEY (`id`),
+UNIQUE INDEX (`login`)  -- small tables have keys predefined
+) ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_repo`;
 CREATE TABLE `g_repo` (
@@ -57,7 +66,9 @@ CREATE TABLE `g_punch_card` (
 `repo` VARCHAR(100) NOT NULL,
 `day` TINYINT(2) ZEROFILL NOT NULL,
 `hour` TINYINT(2) ZEROFILL NOT NULL,
-`commits` SMALLINT(11) UNSIGNED NOT NULL
+`commits` SMALLINT(11) UNSIGNED NOT NULL,
+UNIQUE INDEX (`repo`, `day`, `hour`),
+INDEX (`commits`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
@@ -84,15 +95,6 @@ PRIMARY KEY (`id`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1
-DEFAULT CHARACTER SET = utf8;
-
-DROP TABLE IF EXISTS `g_users`;
-CREATE TABLE `g_users` (
-`id` INT(11) UNSIGNED NOT NULL,
-`login` VARCHAR(40) NOT NULL,
-PRIMARY KEY (`id`),
-UNIQUE INDEX (`login`)
-) ENGINE = InnoDB
 DEFAULT CHARACTER SET = utf8;
 
 DROP TABLE IF EXISTS `g_issue_events`;
