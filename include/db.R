@@ -106,7 +106,6 @@ ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
   ))
 }
 # === For checking of data integerity --------------------
-
 ListExistingRepos <- function(offset = 0, limit = 5) {
   db_get(sprintf(
     "
@@ -129,7 +128,7 @@ ListNonExistingRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
     "data/non_existing_repos.csv",
     # use g_punch_card to identify repositories we already scraped
     "SELECT DISTINCT(repo) FROM g_punch_card"
-  , fresh = fresh)
+  , .fresh = .fresh)
   repos <- all_repos %>% anti_join(scraped_repos, by = "repo")
   repos[(offset+1):min(nrow(repos), offset+limit), ]
 }

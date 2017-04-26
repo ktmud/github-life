@@ -12,7 +12,7 @@ read_dat <- function(fpath, sql, .fresh = FALSE) {
   # Load data from local file,
   # if file does not exist, read from SQL,
   # and then write the results into local file
-  if (file.exists(fpath) && force == FALSE) {
+  if (file.exists(fpath) && .fresh == FALSE) {
     dat <- read_csv(fpath) 
   } else {
     dat <- db_get(sql)

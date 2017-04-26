@@ -7,7 +7,7 @@ library(parallel)
 
 source("include/init.R")
 
-n_workers <- 5
+n_workers <- 6
 # cleanup existing log files
 unlink("/tmp/github-scrape-*.log")
 
