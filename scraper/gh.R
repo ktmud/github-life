@@ -295,6 +295,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     if (n > 0) {
       # last_dat <<- dat
       # last_path <<- fpath
+      # set NA to 'NULL' so that MySQL can recognize it better
       write_csv(dat, fpath, na = "NULL")
     }
     if (!is.null(l_name)) {

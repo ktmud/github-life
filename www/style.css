@@ -1,3 +1,7 @@
+strong {
+  font-weight: 600;
+}
+
 .selectize-input {
   border-radius: 3px;
 }
@@ -48,4 +52,34 @@
 }
 .selectize-dropdown .meta li span {
 	font-weight: bold;
+}
+
+#repo_detail {
+  min-height: 40pt;
+  font-size: 14px;
+}
+.repo-detail-placeholder {
+  text-align: center;
+  padding-top: 10px;
+}
+.repo-details li {
+  width: 33%;
+}
+.repo-details .time-points {
+  color: #999;
+  font-size: 12px;
+}
+.repo-details .desc {
+  min-height: 42px;
+}
+
+.repo-meta {
+  margin-bottom: 0;
+  margin-top: -5px;
+}
+.repo-meta li {
+  padding-right: 10px;
+}
+.repo-meta .fa-star {
+  font-size: 0.85em;
 }

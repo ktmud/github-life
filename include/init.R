@@ -8,11 +8,11 @@ library(lubridate)
 source("include/helpers.R")
 source("include/db.R")
 
-read_dat <- function(fpath, sql) {
+read_dat <- function(fpath, sql, .fresh = FALSE) {
   # Load data from local file,
   # if file does not exist, read from SQL,
   # and then write the results into local file
-  if (file.exists(fpath)) {
+  if (file.exists(fpath) && force == FALSE) {
     dat <- read_csv(fpath) 
   } else {
     dat <- db_get(sql)

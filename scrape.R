@@ -1,3 +1,5 @@
+source("include/init.R")
+
 source("scraper/gh.R")
 source("scraper/repo.R")
 source("scraper/languages.R")

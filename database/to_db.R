@@ -35,7 +35,7 @@ LoadToMySQL <- function(con) {
                       "CHARACTER SET UTF8MB4", "")
     cat(sprintf("
 LOAD DATA LOCAL INFILE '%s'
-IGNORE INTO TABLE `g_%s` %s
+REPLACE INTO TABLE `g_%s` %s
 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\"'
 LINES TERMINATED BY '\\n'
 IGNORE 1 LINES;

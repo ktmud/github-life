@@ -25,18 +25,7 @@ db_connect <- function() {
   assign("ght", ght, envir = .GlobalEnv)
 }
 
-# db.ok <- FALSE
-# # close existing connection
-# if (exists("db")) {
-#   # check whether DB is still there
-#   tryCatch({
-#     dbExecute(db$con, "select 1")
-#     db.ok <- TRUE
-#   }, error = function(err) {
-#     db_err <<- err
-#   })
-# }
-# if (!db.ok) db_connect()
+if (!exists("db")) db_connect()
 
 db_get <- function(query, retry_count = 0) {
   # Get Data from our db connection
@@ -138,8 +127,9 @@ ListNonExistingRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
   # have not been scraped yet
   scraped_repos <- read_dat(
     "data/non_existing_repos.csv",
-    "SELECT DISTINCT(repo) FROM g_languages"
-  )
+    # use g_punch_card to identify repositories we already scraped
+    "SELECT DISTINCT(repo) FROM g_punch_card"
+  , fresh = fresh)
   repos <- all_repos %>% anti_join(scraped_repos, by = "repo")
   repos[(offset+1):min(nrow(repos), offset+limit), ]
 }

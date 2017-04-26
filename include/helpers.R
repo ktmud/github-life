@@ -30,6 +30,12 @@ msg <- function(..., appendLF = TRUE) {
   cat(args)
   if (appendLF) cat("\n")
 }
+
+fmt <- function(...) {
+  # format big numbers
+  format(..., big.mark = ",")
+}
+
 fname <- function(repo, category, ext = ".csv") {
   # generate the data file name for a repo
   # make the directory if necessary

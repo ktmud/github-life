@@ -33,5 +33,5 @@ for category in `ls ./`; do
   head -n 1 "${files[0]}" > $destfile;
   # skip the first line of all files under in the category directory
   # replace NA with NULL so MySQL can recognize
-  tail -q -n +2 $pattern | sed -e s/,NA,/,NULL,/ >> "/tmp/github__${category}.csv"
+  tail -q -n +2 $pattern >> "/tmp/github__${category}.csv"
 done

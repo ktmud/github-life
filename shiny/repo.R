@@ -133,8 +133,6 @@ PlotRepoTimeline <- function(repo) {
   p
 }
 
-PlotRepoTimeline("yahoo/pure")
-
 PlotIssuesTimeline <- function(repo) {
   # The detailed metrics of repos
   events <- ght$g_issue_events %>%
@@ -146,4 +144,53 @@ PlotIssuesTimeline <- function(repo) {
     count(event) %>%
     # show_query() %>%
     collect()
+}
+
+GetRepoDetails <- function(repo) {
+  tmp <- str_split(repo, "/") %>% unlist()
+  db_get(sprintf(
+    "SELECT * from `g_repo`
+    WHERE `owner_login` = '%s' and `name` = '%s'"
+  , tmp[1], tmp[2]))
+}
+RenderRepoDetails <- function(d) {
+  div(
+    id = str_c("repo-detail-", d$id),
+    class = "repo-details",
+    div(class = "desc", d$description),
+    tags$ul(
+      class = "list-inline time-points",
+      tags$li(
+        tags$span("Created at"),
+        tags$strong(d$created_at)
+      ),
+      tags$li(
+        tags$span("last updated at"),
+        tags$strong(d$updated_at)
+      ),
+      tags$li(
+        tags$span("last pushed at"),
+        tags$span(d$pushed_at)
+      )
+    )
+  )
+}
+RenderRepoMeta <- function(d) {
+  tags$ul(
+    class = "list-inline repo-meta",
+    tags$li(
+      style = "width:6em",
+      tags$span(d$lang)
+    ),
+    tags$li(
+      icon("star"),
+      tags$strong(fmt(d$stargazers_count)),
+      tags$span("stars")
+    ),
+    tags$li(
+      icon("code-fork"),
+      tags$strong(fmt(d$forks_count)),
+      tags$span("forks")
+    )
+  )
 }
