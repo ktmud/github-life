@@ -50,17 +50,14 @@ RangeSelector <- function(mindate, maxdate) {
 RepoStats <- function(repo,
                       col_name = "commits",
                       group_others = TRUE) {
-  dat <- dbGetQuery(
-    db$con,
-    sprintf(
-      "
+  dat <- db_get(sprintf(
+    "
       SELECT week, author, %s FROM g_contributors
       WHERE repo = %s
       ",
-      dbQuoteIdentifier(db$con, col_name),
-      dbQuoteString(db$con, repo)
-    )
-  )
+    dbQuoteIdentifier(db$con, col_name),
+    dbQuoteString(db$con, repo)
+  ))
   if (nrow(dat) > 0) {
     dat <- dat %>%
       .[, c("week", "author", col_name)]
@@ -101,7 +98,7 @@ FillEmptyWeeks <- function(dat, mindate, maxdate) {
 }
 
 PlotRepoTimeline <- function(repo) {
-  issues <- dbGetQuery(db$con, sprintf("
+  issues <- db_get(sprintf("
     SELECT
       `repo`,
       DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`,

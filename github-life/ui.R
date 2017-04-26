@@ -3,7 +3,7 @@ library(plotly)
 library(rmarkdown)
 library(readr)
 
-# render("overview.rmd", html_fragment())
+render("overview.rmd", html_fragment())
 
 # == Sidebar ----------------------
 sidebar <- dashboardSidebar(
@@ -42,18 +42,38 @@ repo_tab <- fluidRow(
 
 single_repo_tab <- div(
   fluidRow(
-    box(
-      width = 12,
-      title = "Select a repository",
-      selectizeInput("repo", NULL, NULL)
+    column(
+      width = 4,
+      style = "margin-right:-15px;",
+      box(
+        width = NULL,
+        selectizeInput(
+          "repo", NULL, NULL,
+          options = list(
+            maxOptions = 50,
+            valueField = 'repo',
+            labelField = 'repo',
+            create = FALSE,
+            searchField = c("owner_login", "name", "description"),
+            render = I(read_file("selectize_render.js")),
+            placeholder = "Select your repository..."
+          )) 
+      )
+    ),
+    column(
+      width = 8,
+      box(
+        width = NULL,
+        uiOutput("repo_detail")
+      )
     )
   ),
-  div(
-    id = "single-repo",
-    style = "display:none",
-    fluidRow(
+  fluidRow(
+    column(
+      width = 12,
       box(
-        width = 12,
+        width = NULL,
+        id = "repo-activity",
         title = div(
           "Activity timeline of",
           htmlOutput("repo_fullname", container = strong)
@@ -68,6 +88,9 @@ single_repo_tab <- div(
 )
 
 body <- dashboardBody(
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "style.css")
+  ),
   shinyjs::useShinyjs(),
   tabItems(
     tabItem(tabName = "overview",
@@ -89,6 +112,7 @@ body <- dashboardBody(
 )
 
 dashboardPage(
+  title = "Death and Life of Great Open Source Projects",
   dashboardHeader(title = "GitHub Life"),
   sidebar,
   body

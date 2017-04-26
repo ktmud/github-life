@@ -27,9 +27,7 @@ CREATE TABLE `g_repo` (
 -- `parent_id` INT(11) UNSIGNED NULL,
 -- `source_id` INT(11) UNSIGNED NULL,
 `description` TEXT CHARACTER SET utf8mb4,
-PRIMARY KEY (`id`),
-INDEX (`lang`),
-UNIQUE INDEX (`owner_login`, `name`)
+PRIMARY KEY (`id`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
 KEY_BLOCK_SIZE = 1

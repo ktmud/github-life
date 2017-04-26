@@ -2,16 +2,9 @@ library(DBI)
 library(RMySQL)
 
 # ========== Establish database connection ===============
-db.ok <- FALSE
-# close existing connection
-if (exists("db")) {
-  try({
-    # if connection is gone, this will throw an error
-    dbExecute(db$con, "select 1")
-    db.ok <- TRUE
-  })
-}
-if (!db.ok) {
+
+db_connect <- function() {
+  # establish a new database connection
   db <- src_mysql(
     dbname = Sys.getenv("MYSQL_DBNAME"),
     # host = "127.0.0.1",
@@ -24,12 +17,46 @@ if (!db.ok) {
   ght.tables <- src_tbls(db)
   names(ght.tables) <- ght.tables
   ght <- lapply(ght.tables, function(x) tbl(db, x))
-  
   # Necessary for EMOJIs! :), otherwise some text columns
   # such as `g_issues.title` may complain
   dbExecute(db$con, "SET NAMES utf8mb4")
+  # export global variables
+  assign("db", db, envir = .GlobalEnv)
+  assign("ght", ght, envir = .GlobalEnv)
 }
 
+# db.ok <- FALSE
+# # close existing connection
+# if (exists("db")) {
+#   # check whether DB is still there
+#   tryCatch({
+#     dbExecute(db$con, "select 1")
+#     db.ok <- TRUE
+#   }, error = function(err) {
+#     db_err <<- err
+#   })
+# }
+# if (!db.ok) db_connect()
+
+db_get <- function(query, retry_count = 0) {
+  # Get Data from our db connection
+  res <- NULL
+  tryCatch({
+    res <- dbGetQuery(db$con, query)
+  }, error = function(err) { 
+    # if the error was server gone away, try reconnect
+    if (err$message == "MySQL server has gone away [2006]") {
+      message("MySQL has gone way, try reconnecting..")
+      db_connect()
+    }
+    if (retry_count < 2) {
+      res <<- db_get(query, retry_count + 1)
+    } else {
+      stop(err)
+    }
+  })
+  res
+}
 
 # ======== Database functions ====================
 #
@@ -80,7 +107,7 @@ ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
   # List the Top N most popular repos
   # Args:
   #   offset - skip how many repos
-  dbGetQuery(db$con, sprintf(
+  db_get(sprintf(
     "
     SELECT `repo`, `n_watchers` FROM `popular_projects` %s
     LIMIT %s OFFSET %s
@@ -90,47 +117,29 @@ ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
   ))
 }
 # === For checking of data integerity --------------------
+
 ListExistingRepos <- function(offset = 0, limit = 5) {
-  dbGetQuery(db$con, sprintf(
+  db_get(sprintf(
     "
-    SELECT concat(`owner_login`, '/', `name`) AS repo,
-          `stargazers_count` AS stars
+    SELECT
+      CONCAT(`owner_login`, '/', `name`) AS `repo`,
+      `owner_login`, `name`, `lang`,
+      `stargazers_count` AS `stars`,
+      `forks_count` AS `forks`,
+      `created_at`, `description`
     FROM `g_repo`
-    LIMIT %s OFFSET %s
+    ORDER BY `stars` DESC
+    LIMIT %d OFFSET %d
     ", limit, offset
   ))
 }
-ListNoIssueRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
-  # List repos that has no issues at all
-  tname <- "bad_repos_1"
-  bad_repos <- NULL
-  try(bad_repos <- tbl(db, tname), silent = TRUE)
-  if (is.null(bad_repos) || .fresh) {
-    try(dbRemoveTable(db$con, tname), silent = TRUE)
-    bad_repos <- ght$g_issues %>% distinct(repo) %>%
-      anti_join(ght$popular_projects, by = "repo") %>%
-      compute(tname, temporary = FALSE)
-  }
-  s <- sprintf("SELECT * FROM %s LIMIT %s OFFSET %s", tname, limit, offset)
-  dbGetQuery(db$con, s)
-}
-ListNoIssueEventRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
-  # List repos without any issue events
-  tname <- "bad_repos_2"
-  bad_repos <- NULL
-  try(bad_repos <- tbl(db, tname), silent = TRUE)
-  if (is.null(bad_repos) || .fresh) {
-    try(dbRemoveTable(db$con, tname), silent = TRUE)
-    bad_repos <- ght$popular_projects %>%
-      anti_join(
-        ght$g_issues %>%
-          semi_join(ght$g_issue_events, by = c("id" = "issue_id")) %>%
-          distinct(repo),
-        by = "repo"
-      ) %>%
-      distinct(repo) %>%
-      compute(tname, temporary = FALSE)
-  }
-  s <- sprintf("SELECT * FROM %s LIMIT %s OFFSET %s", tname, limit, offset)
-  dbGetQuery(db$con, s)
+ListNonExistingRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
+  # List repos that has are in the `all_repos` list, but
+  # have not been scraped yet
+  scraped_repos <- read_dat(
+    "data/non_existing_repos.csv",
+    "SELECT DISTINCT(repo) FROM g_languages"
+  )
+  repos <- all_repos %>% anti_join(scraped_repos, by = "repo")
+  repos[(offset+1):min(nrow(repos), offset+limit), ]
 }

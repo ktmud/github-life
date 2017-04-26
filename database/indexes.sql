@@ -9,6 +9,14 @@ SELECT distinct(user_id), user_login FROM `g_issue_comments`;
 INSERT IGNORE INTO g_users (id, login)
 SELECT distinct(actor_id), actor_login FROM `g_issue_events`;
 
+ALTER TABLE `g_repo`
+  ADD UNIQUE INDEX (`owner_login`, `name`),
+  ADD INDEX (`size`),
+  ADD INDEX (`stargazers_count`),
+  ADD INDEX (`lang`),
+  ALGORITHM = INPLACE,
+  LOCK = NONE;
+
 ALTER TABLE `g_stargazers`
   ADD INDEX (`repo`, `starred_at`),
   ADD INDEX (`user_id`),

@@ -7,7 +7,7 @@ library(parallel)
 
 source("include/init.R")
 
-n_workers <- 8
+n_workers <- 5
 # cleanup existing log files
 unlink("/tmp/github-scrape-*.log")
 
@@ -18,8 +18,9 @@ if (exists("cl")) {
   plan(cluster, workers = cl)
 }
 
-GenExpression <- function(i, partition, list_fun = "ListRandomRepos",
-                          fetcher = "FetchAll") {
+GenExpression <- function(i, partition, fetcher = "FetchAll") {
+  list_fun <- "ListRandomRepos"
+  list_fun <- "ListNonExistingRepos"
   parse(
     text = sprintf(
       'if (!exists("ScrapeAll")) {
@@ -84,16 +85,17 @@ cl_execute <- function(fetcher) {
 }
 
 # change this `n_total` for a smaller sample
-# n_total <- nrow(kAllRepos)
-n_total <- 2500
+nonexisting <- ListNonExistingRepos(limit = 50000)
+n_total <- nrow(nonexisting)
+# n_total <- 2500
 partition <- seq(0, n_total + 1, 200)
 
 # 1. Scrape different data categories one by one
-# cl_execute('FetcherOf(ScrapeLanguages, "lang")')
-# cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 # cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
-# cl_execute('FetcherOf(ScrapeContributors, "weeks")')
-# cl_execute('FetcherOf(ScrapePunchCard, NULL)')
+cl_execute('FetcherOf(ScrapeLanguages, "lang")')
+cl_execute('FetcherOf(ScrapeContributors, "weeks")')
+cl_execute('FetcherOf(ScrapeContributors, "weeks")')
+cl_execute('FetcherOf(ScrapePunchCard, NULL)')
 cl_execute('FetcherOf(ScrapeStargazers, "stars")')
 cl_execute('FetcherOf(ScrapeIssues, "issues")')
 cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
