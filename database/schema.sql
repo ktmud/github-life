@@ -26,7 +26,7 @@ CREATE TABLE `g_repo` (
 `pushed_at` TIMESTAMP NOT NULL DEFAULT 0,
 -- `parent_id` INT(11) UNSIGNED NULL,
 -- `source_id` INT(11) UNSIGNED NULL,
-`description` TEXT NOT NULL CHARACTER SET utf8mb4,
+`description` TEXT CHARACTER SET utf8mb4,
 PRIMARY KEY (`id`),
 INDEX (`lang`),
 UNIQUE INDEX (`owner_login`, `name`)
@@ -90,7 +90,8 @@ CREATE TABLE `g_issues` (
 `updated_at` TIMESTAMP NULL,
 `closed_at` TIMESTAMP NULL,
 `title` TEXT CHARACTER SET utf8mb4,
-`body` TEXT CHARACTER SET utf8mb4,
+-- sometimes the body can be very very long, so medium text is needed
+`body` MEDIUMTEXT CHARACTER SET utf8mb4,
 PRIMARY KEY (`id`)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
@@ -122,7 +123,7 @@ CREATE TABLE g_issue_comments (
 `repo` VARCHAR(141) NOT NULL,  -- extraneous column
 `user_login` VARCHAR(40) NOT NULL,
 `updated_at` TIMESTAMP NULL,
-`body` TEXT CHARACTER SET utf8mb4,
+`body` MEDIUMTEXT CHARACTER SET utf8mb4,
 PRIMARY KEY (id)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED

@@ -25,7 +25,7 @@ if (is.null(n_workers)) {
 }
 # interval between each request, only applies to pagination requests
 # -0.2s is the average time cost for each request to finish,
-sleep_length <- max(0, 60*60 / 5000 / length(tokens) * n_workers - 0.3)
+sleep_length <- max(0, 60*60 / 5000 / length(tokens) * n_workers - 0.2)
 
 GetAToken <- function(tried = list()) {
   # Get a new token to use. Will check rate limit automatically.
@@ -66,12 +66,13 @@ GetAToken <- function(tried = list()) {
 
 .TokenLimitReached <- function(tk) {
   if (is.null(tk$remaining) || is.na(tk$remaining)) return(FALSE)
+  if (length(tk$wait_until) == 0 || is.na(tk$wait_until)) return(FALSE)
   # if the wait until time is earlier than now, reset this token
-  if (!is.null(tk$wait_until) && tk$wait_until < Sys.time()) {
+  if (tk$wait_until < Sys.time()) {
     tokens[[tk$token]] <<- list(token = tk$token)
     return(FALSE)
   }
-  tk$remaining <= (length(tokens) * n_workers)
+  tk$remaining < (length(tokens) * n_workers)
 }
 
 .SaveRateLimit <- function(token, res = NULL, response = NULL) {
@@ -83,15 +84,15 @@ GetAToken <- function(tried = list()) {
   }
   if (is.null(response$`x-ratelimit-reset`)) {
     # no information found, skip
-    msg("BAD reseponse for rate limit check:", response, "")
+    msg("BAD reseponse for rate limit check:", response, "\n")
     return(FALSE)
   }
   remaining <- as.integer(response$`x-ratelimit-remaining`)
   # XXX: for debug
   # if (token_i %% 2 == 0)   remaining <- 1
-  # save wait until time to real time, +5s to accomodate
+  # save wait until time to real time, +10s to accomodate
   # time difference between github and our server
-  wait_until <- (as.integer(response$`x-ratelimit-reset`) + 5) %>%
+  wait_until <- (as.integer(response$`x-ratelimit-reset`) + 10) %>%
     as.POSIXct(origin="1970-01-01", tz = "UTC")
   tokens[[token]] <<- list(
     token = token,
@@ -150,6 +151,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     # export the last error to globals
     assign("gh_err_full", x, envir = .GlobalEnv)
     msg("\nError for ", args[[2]], ": ", err)
+    msg(x)
   }
   
   tryCatch({
@@ -190,13 +192,14 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
         return()
       }
       msg("Retry:", retry_count + 1)
-      Sys.sleep(5)
+      Sys.sleep(10)
       # each retry will get a new token
       return(gh(..., verbose = verbose, retry_count = retry_count + 1))
     }
-    # other types of errors, we let it fail, but will
-    # try to save rate limit first
-    stop(err)
+    # other types of errors, we've warned about the error,
+    # So sleep for a while, and return empty values
+    Sys.sleep(30)
+    return()
   }
   
   retry_count <- 0
@@ -264,8 +267,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   #    number of records scraped
   #  whose first two parameters will always be `repo` and `skip_existing`
   return(function(repo, skip_existing = TRUE,
-                  l_name = NULL, l_n = 5,
-                  l_add_pipe = TRUE, ...) {
+                  l_name = NULL, l_n = 5, ...) {
     fpath <- fname(repo, category)
     fsize <- file.size(fpath)
     # if ths file exists and size is not zero, skip
@@ -286,6 +288,10 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     if (is.null(n)) {
       n <- nrow(dat)
     }
+    if (is.null(n)) {
+      msg("(x) BAD data returns")
+      return()
+    }
     if (n > 0) {
       # last_dat <<- dat
       # last_path <<- fpath
@@ -293,7 +299,6 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
     }
     if (!is.null(l_name)) {
       cat(pad(n, l_n), l_name)
-      if (l_add_pipe) cat(" | ")
     }
     return(n)
   })

@@ -43,7 +43,7 @@ GenExpression <- function(i, partition, list_fun = "ListRandomRepos",
 f <- list()
 cl_wait <- function(f) {
   lapply(f, FUN = function(x) {
-    if (!("Future" %in% class(x))) return()
+    if (is.null(x) || !("Future" %in% class(x))) return()
     tryCatch(value(x), error = function(err) {
       message("Error at executing:")
       message(x$globals$myexp)
@@ -89,14 +89,15 @@ n_total <- 2500
 partition <- seq(0, n_total + 1, 200)
 
 # 1. Scrape different data categories one by one
+# cl_execute('FetcherOf(ScrapeLanguages, "lang")')
 # cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 # cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
-
-# cl_execute('FetcherOf(ScrapeLanguages, "lang")')
-# cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
-cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
+# cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 # cl_execute('FetcherOf(ScrapePunchCard, NULL)')
-# cl_execute('FetcherOf(ScrapeIssues, "issues")')
+cl_execute('FetcherOf(ScrapeStargazers, "stars")')
+cl_execute('FetcherOf(ScrapeIssues, "issues")')
+cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
+cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
 
 # 2. Or, you can chose to scrape repository one by one
 # cl_excute("FetchAll")

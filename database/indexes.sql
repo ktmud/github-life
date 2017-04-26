@@ -16,12 +16,9 @@ ALTER TABLE `g_stargazers`
   LOCK = NONE;
 
 ALTER TABLE `g_issues`
-  ADD INDEX (`repo`, `number`),
-  ADD INDEX (`repo`, `state`, `created_at`),
-  ADD INDEX (`created_at`),
-  ADD INDEX (`closed_at`),
   ADD INDEX (`user_id`),
-  ADD INDEX (`is_pull_request`),
+  ADD INDEX (`repo`, `created_at`),
+  ADD INDEX (`repo`, `number`),
   ALGORITHM = INPLACE,
   LOCK = NONE;
   
@@ -35,5 +32,4 @@ ALTER TABLE `g_issue_events`
 ALTER TABLE `g_issue_comments`
   ADD INDEX (`repo`, `issue_number`),
   ALGORITHM = INPLACE,
-  LOCK = NONE;
-  
+  LOCK = NONE; 

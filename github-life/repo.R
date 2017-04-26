@@ -50,10 +50,17 @@ RangeSelector <- function(mindate, maxdate) {
 RepoStats <- function(repo,
                       col_name = "commits",
                       group_others = TRUE) {
-  dat <- ght$g_contributors %>%
-    filter(repo == UQ(repo)) %>%
-    # show_query() %>%
-    collect()
+  dat <- dbGetQuery(
+    db$con,
+    sprintf(
+      "
+      SELECT week, author, %s FROM g_contributors
+      WHERE repo = %s
+      ",
+      dbQuoteIdentifier(db$con, col_name),
+      dbQuoteString(db$con, repo)
+    )
+  )
   if (nrow(dat) > 0) {
     dat <- dat %>%
       .[, c("week", "author", col_name)]
@@ -95,16 +102,14 @@ FillEmptyWeeks <- function(dat, mindate, maxdate) {
 
 PlotRepoTimeline <- function(repo) {
   issues <- dbGetQuery(db$con, sprintf("
-    SELECT `week`, count(*) AS `n_issues`
-    FROM (
-      SELECT
-        `repo`,
-        DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`
-      FROM `g_issues`
-      WHERE `repo` = '%s'
-    ) AS t1
+    SELECT
+      `repo`,
+      DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`,
+      count(*) as `n_issues`
+    FROM `g_issues`
+    WHERE `repo` = %s
     GROUP BY `week`
-  ", repo))
+  ", DBI::dbQuoteString(db$con, repo)))
   repo_stats <- RepoStats(repo)
   
   mindate <- min(issues$week, repo_stats$week, na.rm = TRUE)
@@ -130,6 +135,8 @@ PlotRepoTimeline <- function(repo) {
   }
   p
 }
+
+PlotRepoTimeline("yahoo/pure")
 
 PlotIssuesTimeline <- function(repo) {
   # The detailed metrics of repos

@@ -4,7 +4,6 @@ library(plotly)
 source("include/init.R")
 source("include/db.R")
 source("include/helpers.R")
-source("repo.R")
 
 # load the names of all repos in memory
 if (!exists("repo_choices")) {
