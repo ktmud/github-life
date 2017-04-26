@@ -48,9 +48,6 @@ db_get <- function(query, retry_count = 0) {
 }
 
 # ======== Database functions ====================
-#
-# These functions are not actually in use.
-#
 SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
   # remove existing data then save the latest data to database
   # Args:
@@ -92,43 +89,66 @@ RepoExistsInTable <- function(fullname, in_table = "g_issues") {
   ))
   nrow(res) == 1
 }
-ListPopularRepos <- function(offset = 0, limit = 5, order = TRUE) {
-  # List the Top N most popular repos
-  # Args:
-  #   offset - skip how many repos
-  db_get(sprintf(
-    "
-    SELECT `repo`, `n_watchers` FROM `popular_projects` %s
-    LIMIT %s OFFSET %s
-    ",
-    ifelse(order, "ORDER BY `n_watchers`", ""),
-    limit, offset
-  ))
+
+# === All sorts of different repos list ====================
+read_dat <- function(fpath, sql, .fresh = FALSE) {
+  # Load data from local file,
+  # if file does not exist, read from SQL,
+  # and then write the results into local file
+  if (file.exists(fpath) && .fresh == FALSE) {
+    dat <- read_csv(fpath) 
+  } else {
+    dat <- db_get(sql)
+    if (!is.null(dat) && nrow(dat) > 0) {
+      write_csv(dat, fpath)
+    }
+  }
+  dat
 }
-# === For checking of data integerity --------------------
-ListExistingRepos <- function(offset = 0, limit = 5) {
-  db_get(sprintf(
-    "
-    SELECT
-      CONCAT(`owner_login`, '/', `name`) AS `repo`,
-      `owner_login`, `name`, `lang`,
-      `stargazers_count` AS `stars`,
-      `forks_count` AS `forks`,
-      `created_at`, `description`
+subset_dat <- function(dat, offset = 0, limit = 5) {
+  dat[(offset+1):min(nrow(dat), offset+limit), ]
+}
+
+ListAvailableRepos <- function(offset = 0, limit = 5, .fresh) {
+  read_dat(
+    "data/available_repos.csv",
+    "SELECT
+    CONCAT(`owner_login`, '/', `name`) AS `repo`,
+    `owner_login`, `name`, `lang`,
+    `stargazers_count` AS `stars`,
+    `forks_count` AS `forks`,
+    `created_at`, `description`
     FROM `g_repo`
     ORDER BY `stars` DESC
-    LIMIT %d OFFSET %d
-    ", limit, offset
-  ))
+    ",
+    .fresh = .fresh
+  ) %>% 
+    subset_dat(offset, limit)
 }
-ListNonExistingRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
-  # List repos that has are in the `all_repos` list, but
-  # have not been scraped yet
-  scraped_repos <- read_dat(
-    "data/non_existing_repos.csv",
+ListRandomRepos <- function(offset = 0, limit = 5, seed = 1984) {
+  # List randome repos, helpful when we only want to 
+  # scrape a small sample
+  # Args:
+  #  seed - the seed for randomize the sample
+  
+  # set a seed so the result can be repeatable
+  set.seed(seed)
+  sample_n(available_repos, nrow(available_repos)) %>%
+    subset_dat(offset, limit)
+}
+ListScrapedRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
+  read_dat(
+    "data/scraped_repos.csv",
     # use g_punch_card to identify repositories we already scraped
-    "SELECT DISTINCT(repo) FROM g_punch_card"
-  , .fresh = .fresh)
-  repos <- all_repos %>% anti_join(scraped_repos, by = "repo")
-  repos[(offset+1):min(nrow(repos), offset+limit), ]
+    "SELECT DISTINCT(repo) FROM g_punch_card", .fresh = .fresh) %>% 
+    subset_dat(offset, limit)
+}
+ListNotScrapedRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
+  # List repos that has are in the `available_list` list, but
+  # have not been scraped yet
+  scraped_repos <- ListScrapedRepos(limit = 10e5)
+  notscraped <- available_repos %>%
+    anti_join(scraped_repos, by = "repo")
+  notscraped %>%
+    subset_dat(offset, limit)
 }

@@ -1,9 +1,6 @@
 source("shiny/repo.R")
 
-# load the names of all repos in memory
-all_repos <- ListExistingRepos(limit = 80000)
-repo_choices <- all_repos %>%
-  mutate(repo = str_c(owner_login, "/", name))
+repo_choices <- available_repos
 
 # Define server logic required to draw a histogram
 shiny_server <- shinyServer(function(input, output, session) {

@@ -85,7 +85,7 @@ cl_execute <- function(fetcher) {
 }
 
 # change this `n_total` for a smaller sample
-nonexisting <- ListNonExistingRepos(limit = 50000)
+nonexisting <- ListNotScrapedRepos(limit = 50000)
 n_total <- nrow(nonexisting)
 # n_total <- 2500
 partition <- seq(0, n_total + 1, 200)

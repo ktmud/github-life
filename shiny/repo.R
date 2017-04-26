@@ -12,7 +12,7 @@ RangeSelector <- function(mindate, maxdate) {
       label = "3 mo",
       step = "month",
       stepmode = "backward"
-    ) 
+    )
   }
   if (diffdays > 30 * 7) {
     btns[[length(btns) + 1]] <- list(
