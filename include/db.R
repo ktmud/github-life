@@ -106,10 +106,10 @@ read_dat <- function(fpath, sql, .fresh = FALSE) {
   dat
 }
 subset_dat <- function(dat, offset = 0, limit = 5) {
-  dat[(offset+1):min(nrow(dat), offset+limit), ]
+  dat[(offset+1):min(nrow(dat), offset+limit), , drop = FALSE]
 }
 
-ListAvailableRepos <- function(offset = 0, limit = 5, .fresh) {
+ListAvailableRepos <- function(offset = 0, limit = 5, .fresh = FALSE) {
   read_dat(
     "data/available_repos.csv",
     "SELECT

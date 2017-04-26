@@ -20,7 +20,7 @@ if (exists("cl")) {
 
 GenExpression <- function(i, partition, fetcher = "FetchAll") {
   list_fun <- "ListRandomRepos"
-  list_fun <- "ListNonExistingRepos"
+  list_fun <- "ListNotScrapedRepos"
   parse(
     text = sprintf(
       'if (!exists("ScrapeAll")) {
@@ -64,7 +64,7 @@ cl_execute <- function(fetcher) {
     # this .GlobalEnv is actually the env of the child process
     f[[length(f) + 1]] <<- future(eval(myexp, envir = .GlobalEnv))
     message("Queued: ", partition[i])
-    if (as.numeric(Sys.time() - start_time, units = "mins") > 60) {
+    if (as.numeric(Sys.time() - start_time, units = "mins") > 30) {
       # The memory in forked R sessions seems never recycled.
       # We'd have to restart the whole cluster once in a while (every 1 hour)
       # in order to keep the memory consumption under control.
