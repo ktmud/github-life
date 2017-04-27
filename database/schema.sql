@@ -1,6 +1,14 @@
 -- Prefix "g_" means these are fresh data scraped from Github directly
 -- the ID columns cannot be matched against GHTorrent data,
 -- must use unique names such as user.login, and projects.name instead.
+CREATE DATABASE ghtorrent_restore;
+CREATE USER ghtorrentuser@'localhost' IDENTIFIED BY 'ghtorrentpassword';
+CREATE USER ghtorrentuser@'*' IDENTIFIED BY 'ghtorrentpassword';
+GRANT ALL PRIVILEGES ON ghtorrent_restore.* TO 'ghtorrentuser'@'localhost';
+GRANT ALL PRIVILEGES ON ghtorrent_restore.* TO 'ghtorrentuser'@'*';
+GRANT ALL PRIVILEGES ON ghtorrent_restore.* TO 'ghtorrentuser'@'%' IDENTIFIED BY 'ghtorrentpassword';
+GRANT FILE ON *.* TO 'ghtorrentuser'@'localhost'; 
+FLUSH PRIVILEGES;
 
 DROP TABLE IF EXISTS `g_users`;
 CREATE TABLE `g_users` (

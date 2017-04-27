@@ -27,9 +27,10 @@ ScrapeContributors <- .ScrapeAndSave("contributors", function(repo, ...) {
     }) %>%
     do.call(rbind, .)
   if (ncol(dat) == 5) {
+    reponame <- repo
     dat %<>%
       mutate(
-        repo = UQ(repo),
+        repo = reponame,
         week = parse_timestamp(w),
         total = a + d + c) %>%
       # remove unnecessary zero records

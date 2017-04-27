@@ -25,3 +25,35 @@ The code consists of four major parts: `database`, `scraper`, `shiny` and `repor
 5. Run `scrape.R` or `scrape_cluster.R`, you should have the latest data from GitHub scraped to `./github_data/` (you may change this path by updating environment variable `GITHUB_DATA_DIR` in `.Renviron`).
 
 You can skip step 1~3 if you have your own list of data that you wnat to scrape, or are satisfied with the seed file (`data/popular_repos.csv`) shipped with thise repository. We generated the list using the April 1, 2017 snapshot of GHTorrent data.
+
+
+## Packages needed
+
+Must have these packages installed in order to run the scraper and the shiny app.
+
+```
+install.packages(c("tidyverse", "dplyr", "lubridate", "future"))
+devtools::install_github("rstats-db/DBI")
+devtools::install_github("rstats-db/RMySQL")
+devtools::install_github("hadley/ggplot2")
+devtools::install_github("ropensci/plotly")
+```
+
+If you are using a fresh Ubuntu 17.04 server, start by installing these 
+
+```
+sudo apt update
+sudo apt upgrade
+sudo apt install libmysqlclient-dev libmariadb-client-lgpl-dev
+sudo apt install mysql-server r-base
+sudo apt install libxml2-dev libssl-dev curl
+sudo apt install gdebi-core
+wget https://download2.rstudio.org/rstudio-server-1.0.143-amd64.deb
+wget https://download3.rstudio.org/ubuntu-12.04/x86_64/shiny-server-1.5.3.838-amd64.deb
+
+sudo su - \
+-c "R -e \"install.packages('shiny', repos='https://cran.rstudio.com/')\""
+sudo gdebi rstudio-server-1.0.143-amd64.deb
+sudo gdebi shiny-server-1.5.3.838-amd64.deb
+```
+

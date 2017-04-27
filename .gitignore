@@ -6,6 +6,7 @@
 *.Rhistory
 rsconnect
 report
+scrape-log
 
 Icon*
 

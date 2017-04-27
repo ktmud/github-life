@@ -3,16 +3,26 @@ library(RMySQL)
 
 # ========== Establish database connection ===============
 
-db_connect <- function() {
+db_connect <- function(retry_count = 0) {
   # establish a new database connection
-  db <- src_mysql(
-    dbname = Sys.getenv("MYSQL_DBNAME"),
-    # host = "127.0.0.1",
-    host = Sys.getenv("MYSQL_HOST"),
-    port = as.integer(Sys.getenv("MYSQL_PORT")),
-    user = Sys.getenv("MYSQL_USER"),
-    password = Sys.getenv("MYSQL_PASSWD")
-  )
+  tryCatch({
+    db <- src_mysql(
+      dbname = Sys.getenv("MYSQL_DBNAME"),
+      # host = "127.0.0.1",
+      host = Sys.getenv("MYSQL_HOST"),
+      port = as.integer(Sys.getenv("MYSQL_PORT")),
+      user = Sys.getenv("MYSQL_USER"),
+      password = Sys.getenv("MYSQL_PASSWD")
+    )
+  }, error = function(err) {
+    assign("last_err", err, envir = .GlobalEnv)
+    Sys.sleep(10)  # retry connecting for 5 times, wait for 10 secs between each retry
+    if (retry_count > 5) {
+      stop(err)
+    }
+    message("Retry connecting to MySQL...")
+    db_connect(retry_count + 1)
+  })
   # access all database tables
   ght.tables <- src_tbls(db)
   names(ght.tables) <- ght.tables
@@ -33,12 +43,14 @@ db_get <- function(query, retry_count = 0) {
   tryCatch({
     res <- dbGetQuery(db$con, query)
   }, error = function(err) { 
+    assign("last_err", err, envir = .GlobalEnv)
     # if the error was server gone away, try reconnect
     if (err$message == "MySQL server has gone away [2006]") {
       message("MySQL has gone way, try reconnecting..")
       db_connect()
     }
-    if (retry_count < 2) {
+    if (retry_count < 5) {
+      Sys.sleep(5)  # retry at most 5 times every 5 secs
       res <<- db_get(query, retry_count + 1)
     } else {
       stop(err)
@@ -50,6 +62,7 @@ db_get <- function(query, retry_count = 0) {
 # ======== Database functions ====================
 db_save <- function(name, value, id_field = "id", retry_count = 0) {
   # remove existing data then save the latest data to database
+  # we are doing this because there's no easy way to do upsert
   # Args:
   #   name - the name of a table
   #   value - the values in a data frame, must have a `id` column
@@ -58,33 +71,43 @@ db_save <- function(name, value, id_field = "id", retry_count = 0) {
   if (is.null(id_field)) id_field = "id"
   
   last_value <<- value
-  ids <- str_c(value[, id_field])
+  last_name <<- name
   name_q <- dbQuoteIdentifier(db$con, name)
+  # handle multi column unique columns
   if (length(id_field) > 1) {
-    id_field_q <- vapply(id_field, dbQuoteIdentifier, db$con) %>%
-      str_c(collapse = ", ")
-    id_field_q <- strc("COCAT(", id_field_q, ")")
+    ids <- do.call(str_c, value[id_field])
+    id_field_q <- dbQuoteIdentifier(db$con, id_field) %>% str_c(collapse = ", ")
+    id_field_q <- str_c("COCAT(", id_field_q, ")")
   } else {
+    ids <- unlist(value[, id_field])
     id_field_q <- id_field
     id_field_q <- dbQuoteIdentifier(db$con, id_field)
+  }
+  ids <- ids %>% unique()
+  if (is.character(ids)) {
+    # quote strings
+    ids <- dbQuoteString(db$con, ids)
   }
   tryCatch({
     dbExecute(db$con,
               sprintf(
-                "DELETE FROM %s WHERE %s IN(%s)",
+                "DELETE FROM %s WHERE %s IN ( %s )",
                 name_q,
                 id_field_q,
                 str_c(ids, collapse = ", ")
               ))
     dbWriteTable(db$con, name, value, append = TRUE)
-  }, error = function(e) {
-    if (retry_count > 2) {
-      # have already retried two times
-      message(e)
-    } else {
-      # try one more time
-      db_save(name, value, id_field, retry_count + 1)
+  }, error = function(err) {
+    assign("last_err", err, envir = .GlobalEnv)
+    # if the error was server gone away, try reconnect
+    if (err$message == "MySQL server has gone away [2006]") {
+      message("MySQL has gone way, try reconnecting..")
+      db_connect()
     }
+    # have already retried two times
+    if (retry_count > 2) stop(err)
+    # try one more time
+    db_save(name, value, id_field, retry_count + 1)
   })
   return(TRUE)
 }

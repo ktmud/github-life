@@ -136,8 +136,9 @@ PlotRepoTimeline <- function(repo) {
 
 PlotIssuesTimeline <- function(repo) {
   # The detailed metrics of repos
+  reponame <- repo
   events <- ght$g_issue_events %>%
-    filter(repo == UQ(repo)) %>%
+    filter(repo == reponame) %>%
     # inside {} is MySQL functions
     group_by(week = { DATE(
       SUBDATE(SUBDATE(created_at, WEEKDAY(created_at)), 1)
