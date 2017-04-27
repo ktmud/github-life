@@ -6,6 +6,8 @@ source("shiny/repo.R")
 # Define server logic required to draw a histogram
 shiny_server <- shinyServer(function(input, output, session) {
   
+  cdata <- session$clientData
+  
   updateSelectizeInput(
     session, 'repo',
     choices = repo_choices,

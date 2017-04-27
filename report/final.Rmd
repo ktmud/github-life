@@ -23,20 +23,12 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   message = FALSE, warning = FALSE, 
-  eval = FALSE, tidy = FALSE
+  echo = FALSE, eval = FALSE, tidy = FALSE
 )
 options(htmltools.dir.version = FALSE)
 ```
 
-Following code depends on the latest version of `RMySQL` and `DBI` package:
-
-```{r}
-devtools::install_github("rstats-db/DBI")
-devtools::install_github("rstats-db/RMySQL")
-devtools::install_github("hadley/dplyr")
-```
-
-```{r eval=TRUE}
+```{r, eval=TRUE}
 source("include/init.R")
 n_total <- nrow(available_repos)
 ```
@@ -68,12 +60,10 @@ Out of extensive struggles and testing, we found that the most practical AWS con
 
 ## Data Exporation
 
-To better understand the data we collected, we created a Shiny dashboard, where a user can explore the activity timeline of a repository conveniently. If time permits, we may add aggregated measurements onto the dashboard,too.
-
+To better understand the data we collected, we created a [Shiny dashboard](http://shiny.yjc.me/github-life/), where a user can conveniently explore the activity timeline of a repository. If time permits, we may add more features to the dashboard, such as plots for aggregation measures.
 
 
 ## Data Analysis
-
 
 
 ## Identify Top 1% Propular Projects for Each Language

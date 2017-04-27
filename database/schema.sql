@@ -20,10 +20,10 @@ CREATE TABLE `g_repo` (
 `lang` VARCHAR(120) NOT NULL,
 `forks_count` MEDIUMINT(7) UNSIGNED NOT NULL DEFAULT 0,
 `stargazers_count` INT(7) UNSIGNED NOT NULL DEFAULT 0,
-`size` INT(11) UNSIGNED NOT NULL,
-`created_at` TIMESTAMP NOT NULL DEFAULT 0,
-`updated_at` TIMESTAMP NOT NULL DEFAULT 0,
-`pushed_at` TIMESTAMP NOT NULL DEFAULT 0,
+`size` INT(11) UNSIGNED NOT NULL DEFAULT 0,
+`created_at` TIMESTAMP NOT NULL,
+`updated_at` TIMESTAMP NULL,
+`pushed_at` TIMESTAMP NULL,
 -- `parent_id` INT(11) UNSIGNED NULL,
 -- `source_id` INT(11) UNSIGNED NULL,
 `description` TEXT CHARACTER SET utf8mb4,
@@ -48,7 +48,7 @@ DEFAULT CHARACTER SET = latin1;
 DROP TABLE IF EXISTS `g_contributors`;
 CREATE TABLE g_contributors (
 `repo` VARCHAR(141) NOT NULL,
-`week` TIMESTAMP NOT NULL DEFAULT 0,
+`week` TIMESTAMP NOT NULL,
 `author` VARCHAR(40) NOT NULL,
 `additions` INT(8) UNSIGNED NOT NULL,
 `deletions` INT(8) UNSIGNED NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE `g_issues` (
 `number` MEDIUMINT(10) UNSIGNED NOT NULL,
 `state` VARCHAR(10) NOT NULL,
 `comments` SMALLINT(11) UNSIGNED NOT NULL DEFAULT 0,
-`created_at` TIMESTAMP NOT NULL DEFAULT 0,
+`created_at` TIMESTAMP NOT NULL,
 `updated_at` TIMESTAMP NULL,
 `closed_at` TIMESTAMP NULL,
 `title` TEXT CHARACTER SET utf8mb4,
@@ -105,7 +105,7 @@ CREATE TABLE g_issue_events (
 `actor_login` VARCHAR(40) NOT NULL,
 `event` VARCHAR(30) NOT NULL DEFAULT '',
 `commit_id` VARCHAR(40) NULL,
-`created_at` TIMESTAMP NOT NULL DEFAULT 0,
+`created_at` TIMESTAMP NOT NULL,
 PRIMARY KEY (id)
 ) ENGINE = INNODB
 ROW_FORMAT = COMPRESSED
@@ -117,7 +117,7 @@ CREATE TABLE g_issue_comments (
 `id` INT(11) UNSIGNED NOT NULL,
 `issue_number` MEDIUMINT(10) UNSIGNED NOT NULL,
 `user_id` INT(11) UNSIGNED NOT NULL,
-`created_at` TIMESTAMP NOT NULL DEFAULT 0,
+`created_at` TIMESTAMP NOT NULL,
 `repo` VARCHAR(141) NOT NULL,  -- extraneous column
 `user_login` VARCHAR(40) NOT NULL,
 `updated_at` TIMESTAMP NULL,
@@ -131,7 +131,7 @@ DEFAULT CHARACTER SET = latin1;
 DROP TABLE IF EXISTS `g_stargazers`;
 CREATE TABLE g_stargazers (
 `repo` VARCHAR(141) NOT NULL,
-`starred_at` TIMESTAMP NOT NULL DEFAULT 0,
+`starred_at` TIMESTAMP NOT NULL,
 `user_id` INT(11) UNSIGNED NOT NULL,
 `user_login` VARCHAR(40) NOT NULL
 ) ENGINE = INNODB

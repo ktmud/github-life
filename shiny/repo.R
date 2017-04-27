@@ -123,14 +123,14 @@ PlotRepoTimeline <- function(repo) {
                      mode = "lines+markers",
                      # line = list(width = 1),
                      name = "<b>issues</b>", color = I("#28A845"))
-    p %<>% layout(
-      barmode = "stack",
-      yaxis = list(title = "Count"),
-      xaxis = list(
-        title = "Week",
-        rangeselector = RangeSelector(mindate, maxdate)
-      ))
   }
+  p %<>% layout(
+    barmode = "stack",
+    yaxis = list(title = "Count"),
+    xaxis = list(
+      title = "Week",
+      rangeselector = RangeSelector(mindate, maxdate)
+    ))
   p
 }
 

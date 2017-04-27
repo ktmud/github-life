@@ -48,18 +48,26 @@ db_get <- function(query, retry_count = 0) {
 }
 
 # ======== Database functions ====================
-SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
+db_save <- function(name, value, id_field = "id", retry_count = 0) {
   # remove existing data then save the latest data to database
   # Args:
   #   name - the name of a table
   #   value - the values in a data frame, must have a `id` column
   # Return: whether writeTable succeed.
   if (nrow(value) < 1) return(TRUE)
+  if (is.null(id_field)) id_field = "id"
   
   last_value <<- value
-  ids <- value$id
+  ids <- str_c(value[, id_field])
   name_q <- dbQuoteIdentifier(db$con, name)
-  id_field_q <- dbQuoteIdentifier(db$con, id_field)
+  if (length(id_field) > 1) {
+    id_field_q <- vapply(id_field, dbQuoteIdentifier, db$con) %>%
+      str_c(collapse = ", ")
+    id_field_q <- strc("COCAT(", id_field_q, ")")
+  } else {
+    id_field_q <- id_field
+    id_field_q <- dbQuoteIdentifier(db$con, id_field)
+  }
   tryCatch({
     dbExecute(db$con,
               sprintf(
@@ -75,7 +83,7 @@ SaveToTable <- function(name, value, id_field = "id", retry_count = 0) {
       message(e)
     } else {
       # try one more time
-      SaveToTable(name, value, id_field, retry_count + 1)
+      db_save(name, value, id_field, retry_count + 1)
     }
   })
   return(TRUE)

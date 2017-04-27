@@ -4,9 +4,9 @@ if (kDataDir == "") {
   # set default data directory
   kDataDir <- "./github_data"
 }
-fname <- function(repo, category, ext = ".csv") {
-  # generate the data file name for a repo
-  # make the directory if needed
+fname <- function(repo, category, ext = ".txt") {
+  # generate the local file name for
+  # indicating whether a data point has been scraped
   dname <- file.path(kDataDir, category)
   if (!dir.exists(dname)) {
     dir.create(dname, recursive = TRUE)
@@ -272,6 +272,15 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   res
 }
 
+# these IDs might actually be duplicate
+# but we want to clear all information related to
+# this repo when we delete existing records
+db_id_fields <- list(
+  languages = "repo",
+  contributors = "repo",
+  punch_card = "repo"
+)
+
 .ScrapeAndSave <- function(category, scraper) {
   # Generate a function to scrape and save to a local file
   # Return:
@@ -310,10 +319,12 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       return()
     }
     if (n > 0) {
-      # last_dat <<- dat
-      # last_path <<- fpath
-      # set NA to 'NULL' so that MySQL can recognize it better
-      write_csv(dat, fpath, na = "NULL")
+      # save data to database.
+      db_save(str_c("g_", category), dat, id_field = db_id_fields[[category]])
+      # write the number to a local file,
+      # this file will be used to determine whether this data point
+      # has been scraped.
+      write_file(as.character(n), fpath)
     }
     if (!is.null(l_name)) {
       cat(pad(n, l_n), l_name)
