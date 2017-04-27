@@ -63,12 +63,16 @@ strong {
   padding-top: 10px;
 }
 .repo-details li {
-  width: 33%;
+  margin-right: 6%;
 }
 .repo-details .time-points {
   color: #999;
   font-size: 12px;
   margin-bottom: 0;
+}
+.repo-details .time-points span,
+.repo-details .time-points strong {
+  display: inline-block;
 }
 .repo-details .desc {
   min-height: 52px;

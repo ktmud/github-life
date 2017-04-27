@@ -1,6 +1,6 @@
-library(rlang)
+# library(rlang)
+# library(purrr)
 library(tidyverse)
-library(purrr)
 library(magrittr)
 library(stringr)
 library(lubridate)

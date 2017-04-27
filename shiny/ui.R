@@ -35,8 +35,8 @@ repo_tab <- fluidRow(
 single_repo_tab <- div(
   fluidRow(
     column(
-      width = 4,
-      style = "margin-right:-15px;",
+      width = 6,
+      class = "col-lg-4",
       box(
         width = NULL,
         selectizeInput(
@@ -56,7 +56,8 @@ single_repo_tab <- div(
       )
     ),
     column(
-      width = 8,
+      width = 6,
+      class = "col-lg-8",
       box(
         width = NULL,
         uiOutput("repo_detail")
