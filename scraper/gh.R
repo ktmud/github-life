@@ -1,9 +1,25 @@
-# initially we don't have rate limit info, and will add that
-# to the tokens object while running, so we don't want to
-# accidentally cleared that up again
+# set this to the directory you want (in environment variable)
+kDataDir <- Sys.getenv("GITHUB_DATA_DIR")
+if (kDataDir == "") {
+  # set default data directory
+  kDataDir <- "./github_data"
+}
+fname <- function(repo, category, ext = ".csv") {
+  # generate the data file name for a repo
+  # make the directory if needed
+  dname <- file.path(kDataDir, category)
+  if (!dir.exists(dname)) {
+    dir.create(dname, recursive = TRUE)
+  }
+  file.path(dname, str_c(str_replace(repo, "/", " - "), ext))
+}
+
+# Read the list of available GitHub tokens form sys env.
+# make tokens a list object, so we can save extra info such as
+# rate limit stored with it.
 if (!exists("tokens")) {
-  # make tokens a list, so we can save extra info such as rate limit
-  .tokens <- Sys.getenv("GITHUB_TOKENS") %>% str_trim() %>%
+  .tokens <- Sys.getenv("GITHUB_TOKENS") %>%
+    str_trim() %>%
     str_split("\\s+", simplify = TRUE) %>%
     as.character()
   tokens <- as.list(rep(NA, length(.tokens)))
@@ -14,15 +30,16 @@ if (!exists("tokens")) {
 }
 
 # index of current token in use
-# each process should begin with a random pattern
-set.seed(NULL)  # make sure everything is really randomized
+# each process should begin with a random token
+# set NULL to make sure each time the process restart
+# we have a random token randomized
+set.seed(NULL)
 token_i <- sample(1:length(tokens) - 1, 1)
 
 # number of workers running coccurently
 n_workers <- .GlobalEnv$n_workers
-if (is.null(n_workers)) {
-  n_workers <- 1
-}
+if (is.null(n_workers)) n_workers <- 1
+
 # interval between each request, only applies to pagination requests
 # -0.2s is the average time cost for each request to finish,
 sleep_length <- max(0, 60*60 / 5000 / length(tokens) * n_workers - 0.2)

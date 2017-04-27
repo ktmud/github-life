@@ -68,9 +68,18 @@ strong {
 .repo-details .time-points {
   color: #999;
   font-size: 12px;
+  margin-bottom: 0;
 }
 .repo-details .desc {
-  min-height: 42px;
+  min-height: 52px;
+  padding-right: 15px;
+  position: relative;
+}
+.repo-details .to-github {
+  position: absolute;
+  right: 0px;
+  top: -5px;
+  color: #999;
 }
 
 .repo-meta {
@@ -82,4 +91,10 @@ strong {
 }
 .repo-meta .fa-star {
   font-size: 0.85em;
+}
+
+.plotly + .info {
+  margin-top: 10px;
+  color: #999;
+  font-style: italic;
 }

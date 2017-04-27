@@ -41,6 +41,7 @@ single_repo_tab <- div(
         width = NULL,
         selectizeInput(
           "repo", NULL, NULL,
+          selected = "twbs/bootstrap",
           options = list(
             maxOptions = 100,
             valueField = 'repo',

@@ -94,8 +94,10 @@ partition <- seq(0, n_total + 1, 200)
 # cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
 cl_execute('FetcherOf(ScrapeLanguages, "lang")')
 cl_execute('FetcherOf(ScrapeContributors, "weeks")')
-cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapePunchCard, NULL)')
+# must scrape contributors again because github returns empty results
+# when the stats were not in their cache
+cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapeStargazers, "stars")')
 cl_execute('FetcherOf(ScrapeIssues, "issues")')
 cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
@@ -104,10 +106,5 @@ cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
 # 2. Or, you can chose to scrape repository one by one
 # cl_excute("FetchAll")
 
-# must scrape contributors again because github returns empty results
-# when the stats were not in their cache
-# cl_execute('FetcherOf(ScrapeContributors, "weeks")')
-
-# want until every process finishes,
-# then cleanup the logs
+# 3. wait until every process finishes, then cleanup the logs
 cl_cleanup()

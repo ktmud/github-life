@@ -1,8 +1,6 @@
 #
 # Get Repository details
 # 
-library(plotly)
-
 RangeSelector <- function(mindate, maxdate) {
   btns <- list()
   diffdays <- as.double(maxdate - mindate, units = "days")
@@ -98,6 +96,9 @@ FillEmptyWeeks <- function(dat, mindate, maxdate) {
 }
 
 PlotRepoTimeline <- function(repo) {
+  if (!(repo %in% repo_choices$repo)) {
+    return(EmptyPlot())
+  }
   issues <- db_get(sprintf("
     SELECT
       `repo`,
@@ -147,17 +148,40 @@ PlotIssuesTimeline <- function(repo) {
 }
 
 GetRepoDetails <- function(repo) {
+  if (!str_detect(repo, ".+/.+")) {
+    return()
+  }
   tmp <- str_split(repo, "/") %>% unlist()
-  db_get(sprintf(
+  dat <- db_get(sprintf(
     "SELECT * from `g_repo`
     WHERE `owner_login` = '%s' and `name` = '%s'"
   , tmp[1], tmp[2]))
+  dat$repo <- repo
+  dat
 }
 RenderRepoDetails <- function(d) {
+  if (is.null(d)) {
+    return(
+      div(class = "repo-detail-placeholder",
+        "Please select a repository from the dropdown on the left.",
+        tags$br(),
+        "You may also type to search."
+      )
+    )
+  }
   div(
     id = str_c("repo-detail-", d$id),
     class = "repo-details",
-    div(class = "desc", d$description),
+    div(
+      class = "desc",
+      tags$a(
+        class = "to-github",
+        target = "_blank",
+        href = str_c("http://github.com/", d$repo),
+        icon("external-link")
+      ),
+      d$description
+    ),
     tags$ul(
       class = "list-inline time-points",
       tags$li(
@@ -176,6 +200,7 @@ RenderRepoDetails <- function(d) {
   )
 }
 RenderRepoMeta <- function(d) {
+  if (is.null(d)) return()
   tags$ul(
     class = "list-inline repo-meta",
     tags$li(
@@ -194,3 +219,4 @@ RenderRepoMeta <- function(d) {
     )
   )
 }
+

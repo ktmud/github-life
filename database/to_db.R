@@ -34,12 +34,20 @@ LoadToMySQL <- function(con) {
     charset <- ifelse(tables[i] %in% c("issues", "issue_comments", "repo"),
                       "CHARACTER SET UTF8MB4", "")
     cat(sprintf("
+DELETE t1
+FROM g_%s AS t1
+LEFT JOIN (
+  SELECT CONCAT(owner_login, '/', `name`) AS repo FROM g_repo
+) AS t2
+ON t1.repo=t2.repo
+WHERE t2.repo IS NULL;
+                
 LOAD DATA LOCAL INFILE '%s'
 REPLACE INTO TABLE `g_%s` %s
 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' ESCAPED BY '\"'
 LINES TERMINATED BY '\\n'
 IGNORE 1 LINES;
-", files[i], tables[i], charset
+", tables[i], files[i], tables[i], charset
 ),
         file = load.sql, append = TRUE)
   }

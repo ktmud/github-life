@@ -1,9 +1,3 @@
-# set this to the directory you want (in environment variable)
-kDataDir <- Sys.getenv("GITHUB_DATA_DIR")
-if (kDataDir == "") {
-  # set default data directory
-  kDataDir <- "./github_data"
-}
 # where the `cat` output goes
 if (is.null(.GlobalEnv$logfile)) {
   cat_dest <- NULL
@@ -30,20 +24,9 @@ msg <- function(..., appendLF = TRUE) {
   cat(args)
   if (appendLF) cat("\n")
 }
-
 fmt <- function(...) {
   # format big numbers
   format(..., big.mark = ",")
-}
-
-fname <- function(repo, category, ext = ".csv") {
-  # generate the data file name for a repo
-  # make the directory if necessary
-  dname <- file.path(kDataDir, category)
-  if (!dir.exists(dname)) {
-    dir.create(dname, recursive = TRUE)
-  }
-  file.path(dname, str_c(str_replace(repo, "/", " - "), ext))
 }
 parse_datetime <- function(x) {
   # use conditional comparing so x can be a vector
