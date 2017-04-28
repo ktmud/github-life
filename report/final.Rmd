@@ -625,6 +625,54 @@ issues_selected %>%
 
 We put them in above 2D density plot. Each data point in the graph is a repository, and x,y axises represent its total commits and issues count in its life. We can see that the ratio of commits count and issues count is approximately 2:1. Besides, most of the repositories clustered at the contour center of 200 commits and 100 issues. In addition, the distance between same-density contour line becomes wider as both the count of commits and issues increase, which cound be interpreted as that the project with more contributions made by its maintainers can attract more supports from the community.
 
+### Three measurements in one graph
+
+```{r}
+aggregate_group <- function(aggr_c,aggr_i,aggr_s){
+  aggr_ca <- aggr_c %>% 
+    mutate(measurement = "Commits", average_count = scale(average_variable)) %>% 
+    select(id, measurement, average_count, group)
+  aggr_ia <- aggr_i %>% 
+    mutate(measurement = "Issues", average_count = scale(average_variable)) %>% 
+    select(id, measurement, average_count, group)
+  aggr_sa <- aggr_s %>% 
+    mutate(measurement = "Stargazers", average_count = scale(average_variable)) %>% 
+    select(id, measurement, average_count, group)
+  aggregation_group <- rbind(aggr_ca, aggr_ia, aggr_sa)
+  return(aggregation_group)
+}
+aggr_it <- aggr_i %>% subset(group == "Tiny")
+aggr_st <- aggr_s %>% subset(group == "Tiny")
+aggr_is <- aggr_i %>% subset(group == "Small")
+aggr_ss <- aggr_s %>% subset(group == "Small")
+aggr_im <- aggr_i %>% subset(group == "Medium")
+aggr_sm <- aggr_s %>% subset(group == "Medium")
+aggr_il <- aggr_i %>% subset(group == "Large")
+aggr_sl <- aggr_s %>% subset(group == "Large")
+
+aggregation_tiny <- aggregate_group(aggr_ct,aggr_it,aggr_st)
+aggregation_small <- aggregate_group(aggr_cs,aggr_is,aggr_ss)
+aggregation_medium <- aggregate_group(aggr_cm,aggr_im,aggr_sm)
+aggregation_large <- aggregate_group(aggr_cl,aggr_il,aggr_sl)
+
+aggregation_comparison <- rbind(aggregation_tiny,aggregation_small,aggregation_medium,aggregation_large)
+
+ggplot(aggregation_comparison, aes(id,average_count,color=measurement)) +
+  geom_point(size=.5) +
+  geom_smooth(size=.8) +
+  facet_wrap( ~ group, ncol = 2) +
+  labs(
+    x="Number of weeks",
+    y="Scaled count",
+    title="Comparison of Three Measurements by Codebase Size",
+    color="Measurement"
+  )
+```
+
+To better compare the correlated (or not correlated) trends of three different measures, we scaled the data and plotted them in one group. Looking at the trends for different codebase size group, it seems that all groups and metrics presented a pattern of starting at a high volume, decreases for a period, then stablize at some level. 
+
+The case for large repositories was more special. The number of commits and issues would actually started growing at some later stages, indicating a continued or even enhanced support from the maintainers and the community.
+
 # Discussions and next steps
 
 Our main focus for this project was collecting and exploring the implications of the repository activity data on GitHub. The main finding is that no two repositories are the same. Almost all repositories showed different patterns and it is hard to categorically say which pattern group a repository belongs to. Nevertheless, by splitting repositories into groups based on codebase sizes, we were able to identify a few nuances in between different repository types.
