@@ -1,8 +1,8 @@
 ---
 title: "Life and Death of Great Open Source Projects"
 author:
-- Jianchao Yang <yang.jianc@husky.neu.edu>
-- Zexi Han <hhan.ze@husky.neu.edu>
+  - Jianchao Yang <yang.jianc@husky.neu.edu>
+  - Zexi Han <hhan.ze@husky.neu.edu>
 date: '`r Sys.Date()`'
 output:
   pdf_document:
@@ -11,12 +11,12 @@ output:
     latex_engine: xelatex
     number_sections: yes
     toc: yes
-  html_notebook:
-    fig_caption: yes
-    keep_tex: yes
-    latex_engine: xelatex
-    number_sections: yes
-    toc: yes
+  # html_notebook:
+  #   fig_caption: yes
+  #   keep_tex: yes
+  #   latex_engine: xelatex
+  #   number_sections: yes
+  #   toc: yes
   html_document:
     toc: yes
 subtitle: An exploratory analysis on the activity patterns of GitHub repositories
@@ -25,7 +25,8 @@ subtitle: An exploratory analysis on the activity patterns of GitHub repositorie
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   message = FALSE, warning = FALSE, 
-  echo = FALSE, eval = FALSE, tidy = FALSE,
+  cache = TRUE,
+  echo = FALSE, eval = TRUE, tidy = FALSE,
   fig.width = 8,
   fig.height = 4
 )
@@ -41,21 +42,28 @@ library(reshape2)
 library(knitr)
 ```
 
+```{r, eval = FALSE}
+# generate rmarkdown manually so we can reuse environment variables
+rmarkdown::render("final.Rmd")
+```
+
 ```{r, eval=FALSE}
 source("include/init.R")
 n_total <- nrow(available_repos)
 ```
 
 ```{r}
-# we have a sample of our database (2,500 repos)
-# downloaded and written as fether files
-g_contributors <- read_feather("data/g_contributors.feather")
-g_repo <- read_feather("data/g_repo.feather")
-g_languages <- read_feather("data/g_languages.feather")
-g_issues <- read_feather("data/g_issues.feather")
-g_issue_comments <- read_feather("data/g_issue_comments.feather")
-g_issue_events <- read_feather("data/g_issue_events.feather")
-g_stargazers <- read_feather("data/g_stargazers.feather")
+if (!exists("g_contributors")) {
+  # we have a sample of our database (2,500 repos)
+  # downloaded and written as fether files
+  g_contributors <- read_feather("data/g_contributors.feather")
+  g_repo <- read_feather("data/g_repo.feather")
+  g_languages <- read_feather("data/g_languages.feather")
+  g_issues <- read_feather("data/g_issues.feather")
+  g_issue_comments <- read_feather("data/g_issue_comments.feather")
+  g_issue_events <- read_feather("data/g_issue_events.feather")
+  g_stargazers <- read_feather("data/g_stargazers.feather")
+}
 ```
 
 # Introduction
@@ -74,9 +82,9 @@ Among the 57 million repositories GitHub is hosting ^[As of data on April 19, 20
 
 There are three major type of repository activities: repository starring, code commits and issues. For issues, there are also issue events and issue comments. Other types of activities also include commit comments, release downloads, milestones, etc. For simplicity, we collected only the major acticities: starring, commit counts, and issues (including issue events and comments).
 
-Most of the activities can be aggregated to weekly counts. By looking at the changes of these counts over time, we get a rough picture of how much effort the maintainers have committed to the project, how fast a project gained interests from the community, and how well the community was involved. These measurements are the most important activities that can happen for a repository on GitHub.
+Most of the activities can be aggregated to weekly counts. By looking at the changes of these counts over time, we get a rough picture of how much effort the maintainers have committed to the project, how fast a project gained interests from the community, and how deep the community was involved. These measurements are the most important activities that can happen for a repository on GitHub.
 
-In addition to weekly counts, we also built a two performance metrics for evaluating maitainer commitment.
+In addition to weekly counts of various activity events, we have also built two performance metrics for evaluating maitainer commitment.
 
 ### Maintainer Commitment
 
@@ -86,31 +94,31 @@ A commit is an update to the files in the codebase. Number of weekly commits is 
 
 **Issues response time**
 
-Issues are suggested improvements, tasks or questions created by anyone related to the repository, which are a great way to keep track of tasks, enhancements, and bugs for open source projects. Issues response time is the average time needed for an repository maitainer to take action on an issue opened by someone else. The faster the response, the more commited the maitainer is.
+Issues response time is the average time needed for a repository maitainer to take action on an issue opened by someone else. The faster the response, the more commited the maitainer is.
 
 **Issues close time**
 
-Issues close time is the duration between when the issues were created and when they were last closed, which reflects how fast an issue gets resolved.
+Issues close time is the duration between when the issues were created and when they were last closed, i.e., how fast an issue gets resolved. The faster the close time, the more responsive the maitainers are.
 
 ### Community Engagement
 
-**Number of issues**
+**Issues count**
 
-Issues are just like the bug tracker of repository. More people engaging in the bug tracking will accelerate the maturity of repository. We measure this community engagement by checking how many issues proposed by community members weekly.
+Issues can be reported by anyone. For open source projects on GitHub, issues are an essential channel where the community communicate with the authors: filing bugs, asking feature requests/suggestions, getting support in using the code, and so on.
 
-**Number of issue comments**
+**Issue comments count**
 
-Community members can comment under a issue created by either repository  maintainers or other community members. In this way they contribute solutions or propose new questions toward an issue to engage the development. We count the number of comments posted each week as a measurement of community engagement.
+Higher number of comments on a single issue indicates more heated debate, which can be simply because of the complexity of the problem, but may also indicate the popularity of a project.
 
-**Number of pull requests**
+**Pull requests count**
 
-Pull requests are proposed changes to a repository submitted by a community member and accepted or rejected by a repository's maintainers. It makes it possible that anyone in the community can tell maintainers about changes or improvements he/she has submitted to their repository. Therefore pull requests can be seen as the most influential activity by community performed on the repository. Weekly pull requests count is used to measure the community engagement.
+Pull requests are contributions from the community. More pull requests means more outside people are involved in the development of the projects, often making them more resilient against faded maitainer interest.
 
 ### Community Interests
 
 **Number of stargazers**
 
-Repository Starring is a feature that lets users bookmark repositories. The average number of stargazers for a two-year-old project is XXX. How fast it reaches this number can be seen as a measurement of how well did a project promote itself. Weekly star increment is also checked for pattern exploration.
+GitHub officially admits number of stars as "an approximate level of interest" ^[https://developer.github.com/v3/activity/starring/]. We have the possibility to know when a user starred a project. Aggregating a weekly count for the increase in stargazers can be used as an indication of how community interest changes over time.
 
 ## Data Collection
 
@@ -128,7 +136,7 @@ The scraping process has been redesigned since then--we returned back to write d
 
 To better understand the data we collected, we created a [Shiny dashboard](http://shiny.yjc.me/github-life/), where a user can conveniently explore the activity timeline of a repository, including how number of issues, stargazers and commits (by different authors) evovled over time.
 
-When time permits, we may add more features to the dashboard, such as issues timeline: response rate, response time, resolve time, community contribution rate (commits of non-core-maintainers) etc; and aggregated measurements by different repository groups: organization, programming language, lanuage of users, region, repository objective (library, framework, cheatsheat, references) etc.
+If time permits, we may add more features to the dashboard, such as issues timeline: response rate, response time, resolve time, community contribution rate (commits of non-core-maintainers) etc; and aggregated measurements by different repository groups: organization, programming language, lanuage of users, region, repository objective (library, framework, cheatsheat, references) etc.
 
 But with this simple combined activity timeline, we can already see a lot of different patterns for different projects--basically no two projects are the same. Some showed clear regular development cycles (Figure. 1 twbs/bootstrap); some got their initial fame very fast, but also died fast--this mostly happens to "cheatsheet" type of repositories (Figure. 2 vhf/free-programming-books); some are seeing very steady acticities as community interests keep growing (Figure 3. golang/go).
 
@@ -142,12 +150,76 @@ Our goal would be to detect these patterns and build a typology to describe them
 
 ## Grouping and Classification
 
-To understand the implications of these activity patterns and the correlation between different metrics, we are splitting repositories into groups and compare how various metrics behave differently over groups.
+To understand the implications of these activity patterns and the correlations between different metrics, we are splitting repositories into groups and comparing how various metrics behave differently over groups.
 
-We divided a subset of 2,500 repositories into 4 equal-sized groups based on codebase sizes, which gives us about 620 repositories across the whole spectrum of programming languages and community interest (stargazers count) for each group.
+We sampled 2,500 repositories out of 34,779, and split them into 4 equal-sized groups based on their codebase sizes. This gives us approxiamtely 620 repositories each group, and each across the whole spectrum of programming languages and community interest (stargazers count).
 
-As we are mainly looking at temporal data, it would be more analyzable if every repository had the same time length of data. So the first thing we did is to filter out repositories younger than one year and only look at the first year data for each repositories. This time range is long enough for us to discover patterns, but also avoids dropping too many repositories. ^[One more caveat is that repositories created at different years might have a totally different pattern, as GitHub was getting more and more popular and its user base changes. But for simplicity reason, we are not ignoring such effects for now.].
+As we are mainly looking at temporal data, it would be more analyzable if every repository had the same time length of data. So the first thing we did is to filter out repositories younger than __one year__ and only look at the first year data for each remaining repositories. This time range is long enough for us to discover patterns, but also avoids dropping too many repositories. ^[One more caveat is that repositories created at different years might have a totally different pattern, as GitHub was getting more and more popular and its user base changes. But for simplicity reason, we are not ignoring such effects for now.].
 
+```{r}
+FillEmptyWeeks <- function(dat, mindate, maxdate) {
+  if (nrow(dat) == 0) return(dat)
+  if (any(is.na(dat$week))) return(dat) 
+  dat.full <- data.frame(week = seq(mindate, maxdate, 7)) %>%
+    full_join(dat, by = "week") 
+  dat.full[is.na(dat.full)] <- 0
+  dat.full
+}
+
+# subset by age
+num_weeks <- 52
+# create a list of repos that age above num_weeks
+repo_ages <- g_contributors %>% 
+  distinct(repo, week) %>% 
+  # count for each repo how many distinct weeks it have
+  count(repo)
+
+# selected repos that meet the age requirement 
+year_selected <- repo_ages %>%
+  subset(n >= num_weeks) %>%
+  .$repo
+```
+
+```{r}
+# subset by size
+size_selected <- g_repo %>% 
+  mutate(repo = paste0(owner_login,"/",name)) %>% 
+  subset(repo %in% year_selected) %>% 
+  select(repo,size)
+```
+
+# Data Analysis
+
+## Overview
+
+```{r, eval = FALSE}
+# quantile(g_repo$size)
+```
+
+Among the 2,500 repositories we sampled, nearly half had less then 5MB of codebase.
+
+```{r}
+# repo size density
+fill <- "#4271AE"
+line <- "#1F3552"
+ggplot(g_repo, aes(size)) +
+  geom_density(fill = fill, colour = line, alpha = 0.6) +
+  scale_x_continuous(limits = c(0,30000)) +
+  labs(
+    x="Repo Size (Bytes)",
+    y="Density",
+    title="Density Plot of Repository Size"
+  )
+```
+
+```{r}
+size_quantiles <- quantile(size_selected$size, probs = seq(0, 1, 0.25))
+size_quantiles %>%
+  t() %>%
+  knitr::kable(caption = "Repo size quantiles")
+```
+
+## Commits
 
 ```{r}
 contributions_selected <- g_contributors %>% 
@@ -214,6 +286,15 @@ ggplot(aggr_c, aes(id,average_variable,color=group)) +
   )
 ```
 
+Smaller projects naturally have less commits, but what is more interesting is that almost all groups had a decline in number of commits since the creation, but bigger projects tend to have a more steady stream of code changes, and the number of weekly commits would actually increase as time goes by.
+
+## Issues
+
+### Issues response time
+
+Almost for all repositories, issue reponse time increases over time, regardless of the codebase size. One explaination is that maintainers were more active when their projects were first made public, or in the early stage of development, they are using issues to track working progress, which implies more frequent updates to the issues.
+
+For tiny projects, the increase in reponse time is especially worse, indicating a sense of abandonment. On the contrary, issues response time for large repositories turned more stable in the long run, and even dipped till the end.
 
 ```{r}
 # get the time when the first comment created in each issue
@@ -285,6 +366,13 @@ ggplot(aggr_ir, aes(id,average_variable,color=group)) +
   )
 ```
 
+### Issues close time
+
+Issue close time have downward trend for most projects, which might be because of different issue types as of different stages a repository is in. At the begining, more feature request type of isssues are created, which in general requires mroe time to resolve; while on later stages, more issues would be bug reports or general questions, which requires relatively little efforts. 
+
+In addition, the bigger the codebase size is, the longer it is required to resolve an issue, which might be related to the complexity of the code.
+
+
 ```{r}
 g_issues$created_at <- ymd_hms(g_issues$created_at)
 g_issues$closed_at <- ymd_hms(g_issues$closed_at)
@@ -317,6 +405,9 @@ ggplot(aggr_ic, aes(id,average_variable,color=group)) +
   )
 ```
 
+### Issues count
+
+Issues created by non-maintainers indicate involvements of the community, with pull requests especially so.
 
 ```{r}
 issues_selected <- g_issues %>% 
@@ -345,6 +436,12 @@ ggplot(aggr_i, aes(id,average_variable,color=group)) +
     color="Group"
   )
 ```
+
+Large repositories have a very obvious upward trend in terms of new issues created every week, while repositories of other sizes stay flat most of the time. There are two spikes in this graph, but we are not too worry about them since we have a relatively small sample size, and the noise can get very obvious.
+
+### Issue comments
+
+Issue comments are very in line with new issues count. They even showed the same spikes caused by noise.
 
 ```{r}
 g_issue_comments$created_at <- ymd_hms(g_issue_comments$created_at)
@@ -375,6 +472,10 @@ ggplot(aggr_ic, aes(id,average_variable,color=group)) +
   )
 ```
 
+### Pull requests
+
+Large repository can attracts more contributions from the community to assist its development. Comparing to general issues, pull requests are showing a more obvious staircase pattern.  We might need to investigate why is the case in the future work.
+
 ```{r}
 pullrequests_selected <- g_issues %>% 
   subset(is_pull_request == 1) %>% 
@@ -403,6 +504,10 @@ ggplot(aggr_pr, aes(id,average_variable,color=group)) +
     color="Group"
   )
 ```
+
+## Stargazers
+
+Changes in number of stars are less correlated with repository sizes. It seems that projects tend to gain more attraction when they first released, as all groups showed more stars during the first few weeks.
 
 ```{r}
 g_stargazers$starred_at <- ymd_hms(g_stargazers$starred_at)
@@ -433,47 +538,9 @@ ggplot(aggr_s, aes(id,average_variable,color=group)) +
   )
 ```
 
+## Aggregated Measurements
 
-# Data Analysis
-
-```{r}
-# repo size density
-fill <- "#4271AE"
-line <- "#1F3552"
-ggplot(g_repo, aes(size)) +
-  geom_density(fill = fill, colour = line, alpha = 0.6) +
-  scale_x_continuous(limits = c(0,30000)) +
-  labs(
-    x="Repo Size",
-    y="Density",
-    title="Density Plot of Repository Size"
-  )
-```
-
-```{r}
-# subset by age
-num_weeks <- 52
-# create a list of repos that age above num_weeks
-year_selected <- (g_contributors %>% 
-  group_by(repo) %>% 
-  count() %>% 
-  subset(n >= num_weeks))$repo
-```
-
-```{r}
-# subset by size
-size_selected <- g_repo %>% 
-  mutate(repo = paste0(owner_login,"/",name)) %>% 
-  subset(repo %in% year_selected) %>% 
-  select(repo,size)
-  
-size_quantiles <- quantile(size_selected$size, probs = seq(0, 1, 0.25))
-size_quantiles
-```
-
-Next we started our data collection and dived into the exploration and evaluation of various measurements which could represent the  repository activity, and finally developed metrics with representative characteristics.
-
-## Aggregated Analysis
+Besides time series exploration, it would be also helpful to compare the total and final state aggregated measurements for each group.
 
 ### Mean & Variance of Measurements
 
@@ -524,15 +591,16 @@ ggplot(box_data,aes(measurement,count,color=group)) +
   labs(
     x="Measurement",
     y="Count",
-    title="Mean & Variance of Measurements",
+    title="Mean & Variance of Three Measurements",
     color="Group"
   )
 ```
 
+In the aggregated analysis, we simply select number of commits, issues and stargazers to represent the three measurements. The above box plot clearly shows the mean and variance of three measurements. We dropped many outliers in this plot to zoom in the boxes. For commits and issues, both mean and variance of count increase with the increase of codebase size, which indicats that more variations exist in the development pattern of larger projects. While for stargazers, there is no obvious realation between the number of stargazers and codebase size. 
 
 ### Maintainer Commitment vs. Community Engagement
 
-Total commits count and issues count for each repository
+As mentioned before, commits and issues reflect maitainer commitment and community engagement respectively. We want to examine how these two correlate with each other, using the current total numbers of these two types of events for each repository.
 
 ```{r}
 pair_commits <- contributions_selected %>% 
@@ -551,85 +619,20 @@ issues_selected %>%
     labs(
       x="Commits count",
       y="Issues count",
-      title="2D Density Estimate - Maintainer Commitment vs. Community Engagement"
+      title="2D Density - Maintainer Commitment vs. Community Engagement"
     )
 ```
 
-### Aggregation of Three Measurements
+We put them in above 2D density plot. Each data point in the graph is a repository, and x,y axises represent its total commits and issues count in its life. We can see that the ratio of commits count and issues count is approximately 2:1. Besides, most of the repositories clustered at the contour center of 200 commits and 100 issues. In addition, the distance between same-density contour line becomes wider as both the count of commits and issues increase, which cound be interpreted as that the project with more contributions made by its maintainers can attract more supports from the community.
 
-```{r}
-# Maintainer commitment
-aggr_ma_co <- contributions_selected %>% 
-  group_by(id) %>% 
-  summarise(average_count = mean(variable)) %>% 
-  mutate(measurement = "Commits", average_count = scale(average_count))
+# Discussions and next steps
 
-# Community engagement
-aggr_co_en <- issues_selected %>% 
-  group_by(id) %>% 
-  summarise(average_count = mean(variable)) %>% 
-  mutate(measurement = "Issues", average_count = scale(average_count))
+Our main focus for this project was collecting and exploring the implications of the repository activity data on GitHub. The main finding is that no two repositories are the same. Almost all repositories showed different patterns and it is hard to categorically say which pattern group a repository belongs to. Nevertheless, by splitting repositories into groups based on codebase sizes, we were able to identify a few nuances in between different repository types.
 
-# Community interests
-aggr_co_in <- stargazers_selected %>% 
-  group_by(id) %>% 
-  summarise(average_count = mean(variable)) %>% 
-  mutate(measurement = "Stargazers", average_count = scale(average_count))
+Future works may include finding a more robust way to classify the repositories, such as in project objectives and scales. We certainly do not want to compare a pear with an apple. To dive into a subgroup and identify patterns for each group would be more meaningful work to do.
 
-# Overall Aggregation three measurements
-aggregation_overall <- rbind(aggr_ma_co, aggr_co_en, aggr_co_in)
-ggplot(aggregation_overall, aes(id,average_count,color=measurement)) +
-  geom_point() +
-  geom_smooth() +
-  labs(
-    x="Number of weeks",
-    y="Scaled count",
-    title="Aggregation of Three Measurements",
-    color="Measurement"
-  )
-```
+Parallel scraping was made possible with the `future` package. It can be very efficient, yet relatively hard to debug. Storing large scale data is a challenge, especially when writing into MySQL directly via R. Shiny and Plot.ly are great tools for dynamica explorations. Aggregating things in one place is a tremendously helpful way to uncover data insights.
 
-```{r}
-aggregate_group <- function(aggr_c,aggr_i,aggr_s){
-  aggr_ca <- aggr_c %>% 
-    mutate(measurement = "Commits", average_count = scale(average_variable)) %>% 
-    select(id, measurement, average_count, group)
-  aggr_ia <- aggr_i %>% 
-    mutate(measurement = "Issues", average_count = scale(average_variable)) %>% 
-    select(id, measurement, average_count, group)
-  aggr_sa <- aggr_s %>% 
-    mutate(measurement = "Stargazers", average_count = scale(average_variable)) %>% 
-    select(id, measurement, average_count, group)
-  aggregation_group <- rbind(aggr_ca, aggr_ia, aggr_sa)
-  return(aggregation_group)
-}
-aggr_it <- aggr_i %>% subset(group == "Tiny")
-aggr_st <- aggr_s %>% subset(group == "Tiny")
-aggr_is <- aggr_i %>% subset(group == "Small")
-aggr_ss <- aggr_s %>% subset(group == "Small")
-aggr_im <- aggr_i %>% subset(group == "Medium")
-aggr_sm <- aggr_s %>% subset(group == "Medium")
-aggr_il <- aggr_i %>% subset(group == "Large")
-aggr_sl <- aggr_s %>% subset(group == "Large")
+We plan to open source this project and add more features in the summer.
 
-aggregation_tiny <- aggregate_group(aggr_ct,aggr_it,aggr_st)
-aggregation_small <- aggregate_group(aggr_cs,aggr_is,aggr_ss)
-aggregation_medium <- aggregate_group(aggr_cm,aggr_im,aggr_sm)
-aggregation_large <- aggregate_group(aggr_cl,aggr_il,aggr_sl)
-
-aggregation_comparison <- rbind(aggregation_tiny,aggregation_small,aggregation_medium,aggregation_large)
-
-ggplot(aggregation_comparison, aes(id,average_count,color=measurement)) +
-  geom_point(size=.5) +
-  geom_smooth(size=.8) +
-  facet_wrap( ~ group, ncol = 2) +
-  labs(
-    x="Number of weeks",
-    y="Scaled count",
-    title="Aggregation of Three Measurements by Group",
-    color="Measurement"
-  )
-```
-
-# Discussion and Future Work
-
+Please refer to the README document on GitHub ^[https://github.com/ktmud/github-life] for how the code are structured and which improvements were planned exactly.
