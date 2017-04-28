@@ -93,6 +93,7 @@ partition <- seq(0, n_total + 1, 100)
 # 1. Scrape different data categories one by one
 cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
 cl_execute('FetcherOf(ScrapeLanguages, "lang")')
+cl_execute('FetcherOf(ScrapeLanguages, "lang")')
 cl_execute('FetcherOf(ScrapePunchCard, NULL)')
 
 # run though each data category at least twice, to avoid zero results
