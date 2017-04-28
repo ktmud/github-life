@@ -46,7 +46,7 @@ single_repo_tab <- div(
             valueField = 'repo',
             labelField = 'repo',
             create = FALSE,
-            searchField = c("repo", "description"),
+            searchField = c("name", "repo", "description"),
             render = I(read_file("www/selectize_render.js")),
             placeholder = "Pick a repository..."
           )
@@ -74,9 +74,15 @@ single_repo_tab <- div(
           htmlOutput("repo_fullname", container = strong)
         ),
         plotlyOutput("repo_timeline", height = "350px"),
-        div(class = "info",
+        div(
+          class = "info",
           "Number of commits from top contributors and
-          number of new issues reported each week.")
+          number of new issues reported and new stargazers added each week.",
+          tags$br(),
+          "number of stargazers are scaled with",
+          tags$code("n * mean(issues) / mean(stars)."),
+          "Some stargazers were not scraped because of GitHub API's limit."
+        )
       )
     )
   )

@@ -25,7 +25,7 @@ subtitle: An exploratory analysis on the activity patterns of GitHub repositorie
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   message = FALSE, warning = FALSE, 
-  echo = FALSE, eval = TRUE, tidy = FALSE,
+  echo = FALSE, eval = FALSE, tidy = FALSE,
   fig.width = 8,
   fig.height = 4
 )
@@ -46,55 +46,56 @@ source("include/init.R")
 n_total <- nrow(available_repos)
 ```
 
-```{r, eval=FALSE}
-# acquire and save data table from MySQL Server
-g_issue_comments <- ght$g_issue_comments %>% 
-  collect(n = Inf)
-path <- "D:/workspace_r/data/g_issue_comments.feather"
-write_feather(g_issue_comments, path)
-```
-
 ```{r}
-# import data tables from local
-g_contributors <- read_feather("D:/workspace_r/data/g_contributors.feather")
-g_repo <- read_feather("D:/workspace_r/data/g_repo.feather")
-g_languages <- read_feather("D:/workspace_r/data/g_languages.feather")
-g_issues <- read_feather("D:/workspace_r/data/g_issues.feather")
-g_issue_comments <- read_feather("D:/workspace_r/data/g_issue_comments.feather")
-g_issue_events <- read_feather("D:/workspace_r/data/g_issue_events.feather")
-g_stargazers <- read_feather("D:/workspace_r/data/g_stargazers.feather")
+# we have a sample of our database (2,500 repos)
+# downloaded and written as fether files
+g_contributors <- read_feather("data/g_contributors.feather")
+g_repo <- read_feather("data/g_repo.feather")
+g_languages <- read_feather("data/g_languages.feather")
+g_issues <- read_feather("data/g_issues.feather")
+g_issue_comments <- read_feather("data/g_issue_comments.feather")
+g_issue_events <- read_feather("data/g_issue_events.feather")
+g_stargazers <- read_feather("data/g_stargazers.feather")
 ```
 
 # Introduction
 
 With its unique and user-friendly social coding features such as issues tracking, forks,  pull requests, commit comments and wikis, GitHub has deservedly become the most popular source code hosting service in the world. Many open source developers use GitHub not only for source code management, but also to collaborate with fellow developers, share knowledge, or simply showcase their personal work. The vibrant and all-encompassing online community of GitHub makes its data a prime window on the social dynamics of open source development.
 
-This project is inspired by the magnitude and heterogeneity of GitHub’s project activity data. Our goal is to identify activity patterns for different open source projects and pinpoint indicators and determining factors that are most directly related to different patterns. We will do this by first split projects into 4 groups based on codebase size (tiny, small, medium, large), then examine for each group how did their community interest (measured by changes in number of stars), maintainer commitment (number of commits) and community involvement (number of issues and issue comments) unfold over time.
+This project is inspired by the magnitude and heterogeneity of GitHub’s project activity data. Our objective is to identify activity patterns for different types of open source projects and pinpoint indicators and determining factors that are most directly related to these patterns. We will do this by first split projects into 4 groups based on codebase size (tiny, small, medium, large), then examine for each group how did their community interest (measured by changes in number of stars), maintainer commitment (number of commits) and community involvement (number of issues and issue comments) unfold over time.
 
 # Methods
 
 ## Sampling and Settings
 
-Among the 57 million repositories GitHub is hosting[^As of data on April 19, 2017], a large portion of them are forks or small personal projects with almost no outside visibility. In order to make the data relevant and analyzable, we shall pick only repositories of adequate community interests and values. And to make sure we still cover all different kinds of repositories, we are selecting the top 1% most starred original repositories (i.e., those were not forks) of each programming language, using GHTorrnet MySQL database dumps exported on April 1, 2017. Languages with less than 100 repositories were ignored, leaving us with 36,068 repositories in 228 languages.
+Among the 57 million repositories GitHub is hosting ^[As of data on April 19, 2017], a large portion of them are forks or small personal projects with almost no outside visibility. In order to make the data relevant and analyzable, we shall pick only repositories of adequate community interests and values. And to make sure we still cover all different kinds of repositories, we are selecting the top 1% most starred original repositories (i.e., those were not forks) of each programming language, using GHTorrnet MySQL database dumps exported on April 1, 2017. Languages with less than 100 repositories were ignored, leaving us with 36,068 repositories in 228 languages.
 
 
 ## Data Collection
 
-The [GHTorrent](http://ghtorrent.org/) data were used only for generating this initial seed of potentially “great” projects, then all other data were scraped directly from GitHub API. Since repositories change owner and names from time to time, and GitHub sometimes handle such case with redirections, we have inevitably encountered a few 404s as well as scraped some duplicate data. To reduce the impact of repository renaming and ownership transfers to minimal, we used the seed only for scraping repository details, then used the up to date owner logins and repository names from the repository details to scrape all other data. [^The actual implication was more nuanced than this. We didn’t realize how serious was this problem before we have scraped all data. So we’d have to identify those who changed names and scrape them again.]
+The [GHTorrent](http://ghtorrent.org/) data were used only for generating this initial seed of potentially “great” projects, then all other data were scraped directly from GitHub API. Since repositories change owner and names from time to time, and GitHub sometimes handle such case with redirections, we have inevitably encountered a few 404s as well as scraped some duplicate data. To reduce the impact of repository renaming and ownership transfers to minimal, we used the seed only for scraping repository details, then used the up to date owner logins and repository names from the repository details to scrape all other data. ^[The actual ramifications were more nuanced than this. We didn’t realize how serious this problem was before we have scraped all data, which means we had to run several SQL queries to identify those who changed names and scrape them again.]
 
-With data at such a large scale, we put our scraping program on an EC2 instance of Amazon Web Services so it can run overnight. For best performance--both in scraping and, later, selecting and aggregating--the program will first save GitHub’s JSON API responses into local csv files, so that in case of system fault or interruptions, the program will check the existence of local csv files to skip scraped data points. After all data were scraped, the csv files were then concatenated and imported into MySQL database using LOAD DATA INFILE statement. The reason why we did not insert data to MySQL on the fly is that we needed a fast way to check whether a certain piece of data had been scraped. If we make queries to a MySQL table without indexes, readings will be slow; but if we add indexes, the insertions will be slow. When the volume of transactions is high, a check on file system is much more efficient than connecting to the database, even if that means manually importing data later.
+With data at such a large scale, we put our scraping program on a cloud server (AWS EC2 instance) so it can run overnight. To maximize performance and efficiency, we use MySQL to store the scraped data and are saving data on the fly while scraping. In addition to that, each time a data point was successfully saved, an near empty text file will be created in the file system and it will later be used to skip scraped data in case of servie interruptions and system fault.
 
-There are three major type of repository activities: repository starring, code commits and issues. For issues, there are also issue events and issue comments. Other types of activities include commit comments, release downloads, milestones, etc. For simplicity, we collected only data for starring, commit counts, and issues (including issue events and comments). 
+There are three major type of repository activities: repository starring, code commits and issues. For issues, there are also issue events and issue comments. Other types of activities also include commit comments, release downloads, milestones, etc. For simplicity, we collected only the major acticities: starring, commit counts, and issues (including issue events and comments). 
 
-In the end, for 34,779 identifiable still-alive repositories, we scraped 8.9G of issues data, 4.6G issue events, and 14G issue comments, which took us about 2 days to scrape and 20 hours to import into MySQL and build the indexes (not including time of debugging).
+At the beginning, we tried to write scraped data into the database on the fly, and didn't find a way to efficiently check whether some data has been scraped or not. Then we decide to srape all data to local files then import then to the database. For the 34,779 repositories that were still alive, we scraped 8.9G of issues data, 4.6G issue events, and 14G issue comments data (more than 30G data in total), which took us about 2 days to scrape and 20 hours to import into MySQL and build the indexes (not including time of debugging).
 
-Out of extensive struggles and testing, we found that the most practical AWS configuration is to use a c4.large (4 cores CPU, 7.5G RAM) EC2 instance type while scraping and a 100GB provisioned SSD Elastic Block Storage with at least 1,500 iops while importing data.
+Out of extensive struggles and testing, we found that the most practical AWS configuration with a bearable speed is to use a c4.large (4 cores CPU, 7.5G RAM) EC2 instance type while scraping and a 100GB provisioned SSD Elastic Block Storage with at least 1,500 iops while importing data.
+
+The scraping process has been redesigned since then--we returned back to write data on the fly, but also used small files to check whether a data point has been scraped or not and would not add database indexes afte all data are scraped.
 
 ## Data Exporation
 
-To better understand the data we collected, we created a [Shiny dashboard](http://shiny.yjc.me/github-life/), where a user can conveniently explore the activity timeline of a repository. If time permits, we may add more features to the dashboard, such as plots for aggregation measures.
+To better understand the data we collected, we created a [Shiny dashboard](http://shiny.yjc.me/github-life/), where a user can conveniently explore the activity timeline of a repository, including how number of issues, stargazers and commits (by different authors) evovled over time.
 
-It is noticeable that for some large repositories, there are always a 
+When time permits, we may add more features to the dashboard, such as issues timeline: response rate, response time, resolve time, community contribution rate (commits of non-core-maintainers) etc; and aggregated measurements by different repository groups: organization, programming language, lanuage of users, region, repository objective (library, framework, cheatsheat, references) etc.
+
+But this activity timeline at current format can already help us discover some patterns from different types of projects.
+
+Some showed clear development cycles:
+
+
 
 ## Grouping and Classification
 

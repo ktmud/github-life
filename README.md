@@ -16,9 +16,9 @@ The code consists of four major parts: `database`, `scraper`, `shiny` and `repor
 - **shiny**: the shiny app.
 - **report**: data aggregations and preliminary data analysis reports.
 
-## Setup
+## Setup Scraping
 
-### Generating the seed of top repositories
+### Generate the seed of top repositories
 
 In the `data/` directory, contains a list of top repositories (`data/available_repos.csv`) we generated using the GHTorrent snapshot data on April 1, 2017.
 
@@ -31,7 +31,7 @@ To repeat this seeding process with newer data:
 
 Of course you can use repository lists from other sources, just make sure you put them in a `csv` file and a `repo` column exists in it.
 
-### Environment variables
+### Set environment variables
 
 This application uses environemnt variables to connect to MySQL and setting tokens for GitHub. Make sure you have these variables set in your `.Renviron`, which can be put into either your home directory or the working directory of R.
 
@@ -48,25 +48,32 @@ MYSQL_PASSWD=ghtorrentpassword
 
 ## Packages needed
 
-Must have these packages installed in order to run the scraper and the shiny app.
+Please make sure these packages were successfully installed before you run the scraper.
 
 ```R
 install.packages(c("tidyverse", "dplyr", "lubridate", "future"))
 install.packages("devtools")
+devtools::install_github("r-pkgs/gh")
 devtools::install_github("rstats-db/DBI")
 devtools::install_github("rstats-db/RMySQL")
 devtools::install_github("hadley/ggplot2")
 devtools::install_github("ropensci/plotly")
 ```
 
-If you are using a fresh Ubuntu 17.04 server, start by installing these 
+Depending on your machine, compling some of the packages may need additional
+libraries. If you are using a fresh Ubuntu 17.04 server, you might want to do:
 
 ```bash
 sudo apt update
 sudo apt upgrade
+sudo apt install mysql-server r-base 
 sudo apt install libmysqlclient-dev libmariadb-client-lgpl-dev
-sudo apt install mysql-server r-base
-sudo apt install libxml2-dev libssl-dev curl
+sudo apt install libxml2-dev libssl-dev libcurl4-openssl-dev
+```
+
+Feel free to install RStudio Server and Shiny Server, too:
+
+```
 sudo apt install gdebi-core
 wget https://download2.rstudio.org/rstudio-server-1.0.143-amd64.deb
 wget https://download3.rstudio.org/ubuntu-12.04/x86_64/shiny-server-1.5.3.838-amd64.deb
@@ -77,6 +84,12 @@ sudo gdebi rstudio-server-1.0.143-amd64.deb
 sudo gdebi shiny-server-1.5.3.838-amd64.deb
 ```
 
+### Start Scraping
+
+1. Start a MySQL service, create a database and the tables using `database/schema.sql`. DON'T add any indexes yet.
+2. Make sure all packages required are successfully installed.
+3. If you want parallel scraping, run `scrape_cluser.R`, otherwise dive into `scrape.R` and run appropriate functions as you needed.
+4. After the scraping is done, then you can add MySQL indexes using `database/indexes.sql`. There are other scripts in the `database` folders as well, but they were for when you want to scrape all data into local csv files before importing to the database (which would not be necessary if you can have the mysql service up and running from the start).
 
 ## TODO
 

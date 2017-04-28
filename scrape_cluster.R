@@ -7,7 +7,7 @@ library(parallel)
 
 source("include/init.R")
 
-n_workers <- 6
+n_workers <- 4
 # cleanup existing log files
 unlink("/tmp/github-scrape-*.log")
 
@@ -20,7 +20,7 @@ if (exists("cl")) {
 
 GenExpression <- function(i, partition, fetcher = "FetchAll") {
   list_fun <- "ListRandomRepos"
-  list_fun <- "ListNotScrapedRepos"
+  # list_fun <- "ListNotScrapedRepos"
   parse(
     text = sprintf(
       'if (!exists("ScrapeAll")) {
@@ -64,9 +64,9 @@ cl_execute <- function(fetcher) {
     # this .GlobalEnv is actually the env of the child process
     f[[length(f) + 1]] <<- future(eval(myexp, envir = .GlobalEnv))
     message("Queued: ", partition[i])
-    if (as.numeric(Sys.time() - start_time, units = "mins") > 30) {
+    if (as.numeric(Sys.time() - start_time, units = "mins") > 15) {
       # The memory in forked R sessions seems never recycled.
-      # We'd have to restart the whole cluster once in a while (every 1 hour)
+      # We'd have to restart the whole cluster once in a while
       # in order to keep the memory consumption under control.
       # note such restart might take a while if one of the sessions
       # were blocked by a very large repo.
@@ -85,22 +85,29 @@ cl_execute <- function(fetcher) {
 }
 
 # change this `n_total` for a smaller sample
-nonexisting <- ListNotScrapedRepos(limit = 50000)
-n_total <- nrow(nonexisting)
-# n_total <- 2500
-partition <- seq(0, n_total + 1, 200)
+# nonexisting <- ListNotScrapedRepos(limit = 50000)
+# n_total <- nrow(nonexisting)
+n_total <- nrow(available_repos)
+partition <- seq(0, n_total + 1, 500)
 
 # 1. Scrape different data categories one by one
-# cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
+# go through though each data category at least twice,
+# so to eleminate zero results from GitHub's missing cache
+cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
+cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
 cl_execute('FetcherOf(ScrapeLanguages, "lang")')
-cl_execute('FetcherOf(ScrapeContributors, "weeks")')
+cl_execute('FetcherOf(ScrapeLanguages, "lang")')
 cl_execute('FetcherOf(ScrapePunchCard, NULL)')
-# must scrape contributors again because github returns empty results
-# when the stats were not in their cache
+cl_execute('FetcherOf(ScrapePunchCard, NULL)')
+cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapeStargazers, "stars")')
+cl_execute('FetcherOf(ScrapeStargazers, "stars")')
+cl_execute('FetcherOf(ScrapeIssues, "issues")')
 cl_execute('FetcherOf(ScrapeIssues, "issues")')
 cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
+cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
+cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
 cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
 
 # 2. Or, you can chose to scrape repository one by one

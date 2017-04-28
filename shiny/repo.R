@@ -42,15 +42,8 @@ RepoStats <- function(repo,
   }
   dat
 }
-
-PlotRepoTimeline <- function(repo) {
-  if (is.null(repo) || repo == "") {
-    return(EmptyPlot())
-  }
-  if (!(repo %in% repo_choices$repo)) {
-    return(EmptyPlot("No data found! :("))
-  }
-  issues <- db_get(sprintf("
+RepoIssues <- function(repo) {
+  db_get(sprintf("
     SELECT
       `repo`,
       DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`,
@@ -59,16 +52,51 @@ PlotRepoTimeline <- function(repo) {
     WHERE `repo` = %s
     GROUP BY `week`
   ", dbQuoteString(db$con, repo)))
+}
+RepoStargazers <- function(repo) {
+  db_get(sprintf("
+    SELECT
+      `repo`,
+      DATE(SUBDATE(SUBDATE(`starred_at`, WEEKDAY(`starred_at`)), 1)) AS `week`,
+      count(*) as `n_stargazers`
+    FROM `g_stargazers`
+    WHERE `repo` = %s
+    GROUP BY `week`
+  ", dbQuoteString(db$con, repo)))
+}
+
+PlotRepoTimeline <- function(repo) {
+  if (is.null(repo) || repo == "") {
+    return(EmptyPlot())
+  }
+  if (!(repo %in% repo_choices$repo)) {
+    return(EmptyPlot("No data found! :("))
+  }
+  issues <- RepoIssues(repo)
   repo_stats <- RepoStats(repo)
+  stargazers <- RepoStargazers(repo)
   
-  if (nrow(repo_stats) + nrow(issues) < 1) {
+  # remove first week of data because for some large repositories
+  # the first week of data can be very very large,
+  # often screws the whole time line
+  if (nrow(stargazers) > 10) {
+    stargazers <- stargazers[-1, ]
+    issues <- issues[-1, ]
+  }
+  
+  if (nrow(repo_stats) + nrow(issues) + nrow(stargazers) < 1) {
     return(EmptyPlot("No data found! :("))
   }
   
-  mindate <- min(issues$week, repo_stats$week, na.rm = TRUE)
-  maxdate <- max(issues$week, repo_stats$week, na.rm = TRUE)
+  mindate <- min(issues$week, repo_stats$week, stargazers$week,
+                 na.rm = TRUE)
+  maxdate <- max(issues$week, repo_stats$week, stargazers$week,
+                 na.rm = TRUE)
   
+  # since these two are line charts, we'd need to
+  # fill zeros for empty weeks so to make the graph continous.
   issues %<>% FillEmptyWeeks(mindate, maxdate)
+  stargazers %<>% FillEmptyWeeks(mindate, maxdate)
   
   p <- plot_ly(repo_stats, x = ~week, y = ~count, opacity = 0.6,
                color = ~author, type = "bar")
@@ -78,6 +106,16 @@ PlotRepoTimeline <- function(repo) {
                      mode = "lines+markers",
                      # line = list(width = 1),
                      name = "<b>issues</b>", color = I("#28A845"))
+  }
+  if (nrow(stargazers) > 0) {
+    diffrate <- mean(issues$n_issues) / mean(stargazers$n_stargazers)
+    stargazers %<>%
+      mutate(star_scaled = n_stargazers * diffrate)
+    p %<>% add_lines(data = stargazers, x = ~week, y = ~star_scaled,
+                     opacity = 1,
+                     mode = "lines+markers",
+                     # line = list(width = 1),
+                     name = "<b>stars (scaled)</b>", color = I("#fb8532"))
   }
   p %<>% layout(
     barmode = "stack",
