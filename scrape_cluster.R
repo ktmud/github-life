@@ -88,17 +88,15 @@ cl_execute <- function(fetcher) {
 # nonexisting <- ListNotScrapedRepos(limit = 50000)
 # n_total <- nrow(nonexisting)
 n_total <- nrow(available_repos)
-partition <- seq(0, n_total + 1, 500)
+partition <- seq(0, n_total + 1, 100)
 
 # 1. Scrape different data categories one by one
-# go through though each data category at least twice,
-# so to eleminate zero results from GitHub's missing cache
-cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
 cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
 cl_execute('FetcherOf(ScrapeLanguages, "lang")')
-cl_execute('FetcherOf(ScrapeLanguages, "lang")')
 cl_execute('FetcherOf(ScrapePunchCard, NULL)')
-cl_execute('FetcherOf(ScrapePunchCard, NULL)')
+
+# run though each data category at least twice, to avoid zero results
+# becauses of GitHub's mssing cache
 cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapeStargazers, "stars")')
