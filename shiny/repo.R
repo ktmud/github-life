@@ -1,53 +1,10 @@
 #
 # Get Repository details
 # 
-RangeSelector <- function(mindate, maxdate) {
-  btns <- list()
-  diffdays <- as.double(maxdate - mindate, units = "days")
-  if (diffdays > 30 * 4) {
-    btns[[length(btns) + 1]] <- list(
-      count = 3,
-      label = "3 mo",
-      step = "month",
-      stepmode = "backward"
-    )
-  }
-  if (diffdays > 30 * 7) {
-    btns[[length(btns) + 1]] <- list(
-      count = 6,
-      label = "6 mo",
-      step = "month",
-      stepmode = "backward"
-    )
-  }
-  if (diffdays > 400) {
-    btns[[length(btns) + 1]] <- list(
-      count = 1,
-      label = "1 yr",
-      step = "year",
-      stepmode = "backward"
-    )
-  }
-  if (diffdays > 365 * 2.5) {
-    btns[[length(btns) + 1]] <- list(
-      count = 2,
-      label = "2 yr",
-      step = "year",
-      stepmode = "backward"
-    )
-  }
-  btns <<- btns
-  if (length(btns) > 0) {
-    btns[[length(btns) + 1]] <- list(step = "all")
-    list(buttons = btns)
-  } else {
-    NULL    
-  }
-}
-
 RepoStats <- function(repo,
                       col_name = "commits",
                       group_others = TRUE) {
+  repo <- as.character(repo)
   dat <- db_get(sprintf(
     "
       SELECT week, author, %s FROM g_contributors
@@ -81,23 +38,17 @@ RepoStats <- function(repo,
     dat$week <- as.Date(dat$week)
   } else {
     # give an empty row
-    dat <- data.frame(week = NA, author = NA, count = NA)
+    dat <- data.frame()
   }
   dat
 }
 
-FillEmptyWeeks <- function(dat, mindate, maxdate) {
-  if (nrow(dat) == 0) return(dat)
-  if (any(is.na(dat$week))) return(dat) 
-  dat.full <- data.frame(week = seq(mindate, maxdate, 7)) %>%
-    full_join(dat, by = "week") 
-  dat.full[is.na(dat.full)] <- 0
-  dat.full
-}
-
 PlotRepoTimeline <- function(repo) {
-  if (!(repo %in% repo_choices$repo)) {
+  if (is.null(repo) || repo == "") {
     return(EmptyPlot())
+  }
+  if (!(repo %in% repo_choices$repo)) {
+    return(EmptyPlot("No data found! :("))
   }
   issues <- db_get(sprintf("
     SELECT
@@ -107,8 +58,12 @@ PlotRepoTimeline <- function(repo) {
     FROM `g_issues`
     WHERE `repo` = %s
     GROUP BY `week`
-  ", DBI::dbQuoteString(db$con, repo)))
+  ", dbQuoteString(db$con, repo)))
   repo_stats <- RepoStats(repo)
+  
+  if (nrow(repo_stats) + nrow(issues) < 1) {
+    return(EmptyPlot("No data found! :("))
+  }
   
   mindate <- min(issues$week, repo_stats$week, na.rm = TRUE)
   maxdate <- max(issues$week, repo_stats$week, na.rm = TRUE)
@@ -134,7 +89,13 @@ PlotRepoTimeline <- function(repo) {
   p
 }
 
-PlotIssuesTimeline <- function(repo) {
+PlotRepoIssueTimeline <- function(repo) {
+  if (is.null(repo) || repo == "") {
+    return(EmptyPlot(""))
+  }
+  if (!(repo %in% repo_choices$repo)) {
+    return(EmptyPlot(""))
+  }
   # The detailed metrics of repos
   reponame <- repo
   events <- ght$g_issue_events %>%
@@ -149,15 +110,17 @@ PlotIssuesTimeline <- function(repo) {
 }
 
 GetRepoDetails <- function(repo) {
-  if (!str_detect(repo, ".+/.+")) {
-    return()
-  }
+  if (is.null(repo) || !str_detect(repo, ".+/.+")) return()
   tmp <- str_split(repo, "/") %>% unlist()
   dat <- db_get(sprintf(
     "SELECT * from `g_repo`
     WHERE `owner_login` = '%s' and `name` = '%s'"
   , tmp[1], tmp[2]))
+  if (is.null(dat) || nrow(dat) < 1) {
+    return(tibble(repo = repo, exists = FALSE))
+  }
   dat$repo <- repo
+  dat$exists <- TRUE
   dat
 }
 RenderRepoDetails <- function(d) {
@@ -167,6 +130,15 @@ RenderRepoDetails <- function(d) {
         "Please select a repository from the dropdown on the left.",
         tags$br(),
         "You may also type to search."
+      )
+    )
+  }
+  if (!d$exists) {
+    return(
+      div(class = "repo-detail-placeholder",
+        "Could not found data for this repository.",
+        tags$br(),
+        "Either it doesn't exists or we didn't scrape it yet."
       )
     )
   }
@@ -201,7 +173,7 @@ RenderRepoDetails <- function(d) {
   )
 }
 RenderRepoMeta <- function(d) {
-  if (is.null(d)) return()
+  if (is.null(d) || !d$exists) return()
   tags$ul(
     class = "list-inline repo-meta",
     tags$li(

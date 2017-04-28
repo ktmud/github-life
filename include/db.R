@@ -16,7 +16,8 @@ db_connect <- function(retry_count = 0) {
     )
   }, error = function(err) {
     assign("last_err", err, envir = .GlobalEnv)
-    Sys.sleep(10)  # retry connecting for 5 times, wait for 10 secs between each retry
+    # retry connecting for 5 times, wait for 10 secs between each retry
+    Sys.sleep(10)
     if (retry_count > 5) {
       stop(err)
     }
@@ -49,8 +50,11 @@ db_get <- function(query, retry_count = 0) {
       message("MySQL has gone way, try reconnecting..")
       db_connect()
     }
-    if (retry_count < 5) {
-      Sys.sleep(5)  # retry at most 5 times every 5 secs
+    if (retry_count < 2) {
+      Sys.sleep(2)  # retry at most 5 times every 5 secs
+      message("This query got an error:")
+      message(query)
+      message(err)
       res <<- db_get(query, retry_count + 1)
     } else {
       stop(err)

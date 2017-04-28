@@ -14,19 +14,33 @@ shiny_server <- shinyServer(function(input, output, session) {
     server = TRUE
   )
   
+  # handle repo changes
+  observeEvent(input$repo, {
+    if (input$repo != "") {
+      params <- str_c("?repo=", input$repo)
+      updateQueryString(params, mode = "push")
+    }
+  })
+  
   getDetails <- eventReactive(input$repo, {
-    GetRepoDetails(input$repo)
+    repo <- input$repo
+    if (is.null(input$repo) || input$repo == "") {
+      # try read from URL if no repo selected in input
+      repo <- getQueryString()$repo
+    }
+    GetRepoDetails(repo)
   })
   
   output$repo_fullname <- renderText({
-    if (input$repo == "") {
+    repo <- getDetails()$repo
+    if (is.null(repo)) {
       "..."
     } else {
-      input$repo
+      repo
     }
   })
   output$repo_timeline <- renderPlotly({
-    PlotRepoTimeline(input$repo)
+    PlotRepoTimeline(getDetails()$repo)
   })
   output$repo_detail <- renderUI({
     RenderRepoDetails(getDetails())
@@ -35,6 +49,6 @@ shiny_server <- shinyServer(function(input, output, session) {
     RenderRepoMeta(getDetails())
   })
   output$repo_issues_timeline <- renderPlotly({
-    PlotRepoIssueTimeline(input$repo)
+    PlotRepoIssueTimeline(getDetails()$repo)
   })
 })

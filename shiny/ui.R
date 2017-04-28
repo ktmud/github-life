@@ -1,21 +1,19 @@
 # == Sidebar ----------------------
 sidebar <- dashboardSidebar(
   sidebarMenu(
-    # menuItem(
-    #   "Overview",
-    #   icon = icon("globe"),
-    #   tabName = "overview"
-    # ),
     menuItem(
-      "Repositories", icon = icon("github"),
-      menuItem(
-        "Overview", icon = icon("git-square"), tabName = "repo"
-      ),
-      menuItem(
-        selected = TRUE,
-        "Explore a repo", icon = icon("git"), tabName = "single-repo"
-      )
-    ), 
+      "Overview",
+      icon = icon("globe"),
+      tabName = "overview"
+    ),
+    menuItem(
+      selected = TRUE,
+      "Explore a repository", icon = icon("book"), tabName = "single-repo"
+    ),
+    menuItem(
+      "Repository Groups", icon = icon("git"),
+      tabName = "repo"
+    ),
     menuItem("People", icon = icon("users"), tabName = "usr"),
     menuItem("Organizations", icon = icon("sitemap"), tabName = "org")
   )
@@ -25,11 +23,12 @@ sidebar <- dashboardSidebar(
 library(rmarkdown)
 render("www/overview.Rmd", html_fragment(), quiet = TRUE)
 
-overview_tab <- fluidRow(
-  div(class = "readable", HTML(read_file("www/overview.html")))
-)
 repo_tab <- fluidRow(
-  h2("Repositories")
+  column(
+    width = 12,
+    h2("Explore different repository groups"),
+    p("A few fun facts about our top repositories.")
+  )
 )
 
 single_repo_tab <- div(
@@ -47,7 +46,7 @@ single_repo_tab <- div(
             valueField = 'repo',
             labelField = 'repo',
             create = FALSE,
-            searchField = c("owner_login", "name", "description"),
+            searchField = c("repo", "description"),
             render = I(read_file("www/selectize_render.js")),
             placeholder = "Pick a repository..."
           )
@@ -89,26 +88,21 @@ body <- dashboardBody(
   ),
   shinyjs::useShinyjs(),
   tabItems(
-    tabItem(tabName = "overview",
-            h1("Death and Life of Great Open Source Projects"),
-            overview_tab),
+    tabItem(
+      tabName = "overview",
+      div(class = "readable", HTML(read_file("www/overview.html")))
+    ),
     tabItem(tabName = "repo", repo_tab),
     tabItem(tabName = "single-repo", single_repo_tab),
     tabItem(tabName = "usr", h2("People")),
     tabItem(tabName = "org", h2("Organizations")
     )
   ),
-  HTML("
-    <script>
-      $('li.treeview').addClass('active')
-        .find('.treeview-menu')
-        .addClass('menu-open')
-    </script>
-  ")
+  tags$script(read_file("www/app.js"))
 )
 
 shiny_ui <- dashboardPage(
-  title = "Death and Life of Great Open Source Projects",
+  title = "Github Life",
   dashboardHeader(title = div(
     icon("github-alt"),
     "GitHub Life"

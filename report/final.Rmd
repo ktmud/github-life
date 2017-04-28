@@ -1,36 +1,68 @@
 ---
 title: "Life and Death of Great Open Source Projects"
-subtitle: "An exploratory analysis on the activity patterns of GitHub repositories"
 author:
-  - "Jianchao Yang <yang.jianc@husky.neu.edu>"
-  - "Zexi Han <hhan.ze@husky.neu.edu>"
-date: "`r Sys.Date()`"
-output: 
+- Jianchao Yang <yang.jianc@husky.neu.edu>
+- Zexi Han <hhan.ze@husky.neu.edu>
+date: '`r Sys.Date()`'
+output:
+  pdf_document:
+    fig_caption: yes
+    keep_tex: yes
+    latex_engine: xelatex
+    number_sections: yes
+    toc: yes
   html_notebook:
     fig_caption: yes
     keep_tex: yes
     latex_engine: xelatex
     number_sections: yes
     toc: yes
-  pdf_document: 
-    fig_caption: yes
-    keep_tex: yes
-    latex_engine: xelatex
-    number_sections: yes
+  html_document:
     toc: yes
+subtitle: An exploratory analysis on the activity patterns of GitHub repositories
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(
   message = FALSE, warning = FALSE, 
-  echo = FALSE, eval = FALSE, tidy = FALSE
+  echo = FALSE, eval = TRUE, tidy = FALSE,
+  fig.width = 8,
+  fig.height = 4
 )
 options(htmltools.dir.version = FALSE)
+library(stringr)
+library(dplyr)
+library(magrittr)
+library(lubridate)
+library(readr)
+library(ggplot2)
+library(feather)
+library(reshape2)
+library(knitr)
 ```
 
-```{r, eval=TRUE}
+```{r, eval=FALSE}
 source("include/init.R")
 n_total <- nrow(available_repos)
+```
+
+```{r, eval=FALSE}
+# acquire and save data table from MySQL Server
+g_issue_comments <- ght$g_issue_comments %>% 
+  collect(n = Inf)
+path <- "D:/workspace_r/data/g_issue_comments.feather"
+write_feather(g_issue_comments, path)
+```
+
+```{r}
+# import data tables from local
+g_contributors <- read_feather("D:/workspace_r/data/g_contributors.feather")
+g_repo <- read_feather("D:/workspace_r/data/g_repo.feather")
+g_languages <- read_feather("D:/workspace_r/data/g_languages.feather")
+g_issues <- read_feather("D:/workspace_r/data/g_issues.feather")
+g_issue_comments <- read_feather("D:/workspace_r/data/g_issue_comments.feather")
+g_issue_events <- read_feather("D:/workspace_r/data/g_issue_events.feather")
+g_stargazers <- read_feather("D:/workspace_r/data/g_stargazers.feather")
 ```
 
 # Introduction
@@ -62,25 +94,532 @@ Out of extensive struggles and testing, we found that the most practical AWS con
 
 To better understand the data we collected, we created a [Shiny dashboard](http://shiny.yjc.me/github-life/), where a user can conveniently explore the activity timeline of a repository. If time permits, we may add more features to the dashboard, such as plots for aggregation measures.
 
+It is noticeable that for some large repositories, there are always a 
 
-## Data Analysis
+## Grouping and Classification
 
+To understand the implications of different activity patterns, we need to associate them with certain metrics. We are doing this by splitting repositories into groups and testing the differences between various aggregated measures of each group.
 
-## Identify Top 1% Propular Projects for Each Language
+_equally divided the subset into 4 groups by codebase size, in order to make the activity behavior normally distributed for each group._
 
-First, we create an intermediate table to store watchers count for each project. Only original repositories were retained, forks and deleted repositories were discarded (since we will not be able to get the latest data from Github for them anyway).
+To explore the activity patterns over time, we majorly performed the time-series analysis. So the first thing we did is to select a robust range of time as standard. Considering that the range of time must be long enough for repositories to present an obvious activity pattern, we set the first year of the repository’s life as the standard range of time. Thereby we went on subsetting the projects which were at least one years old.
 
-```{r, eval=FALSE}
-count_project_watchers <- tbl(db, "count_project_watchers")
-n_total <- count_project_watchers %>% count() %>% collect() %>% .$n
+```{r}
+# repo size density
+fill <- "#4271AE"
+line <- "#1F3552"
+ggplot(g_repo, aes(size)) +
+  geom_density(fill = fill, colour = line, alpha = 0.6) +
+  scale_x_continuous(limits = c(0,30000)) +
+  labs(
+    x="Repo Size",
+    y="Density",
+    title="Density Plot of Repository Size"
+  )
 ```
 
-Then we pick only the top 1% projects with the most watchers for each programming language. There are `r format(n_total, big.mark = ",")` unique projects (not forks) in total, the top 1% will give us a sample size of around
-`r format(round(n_total * 0.01, -3), big.mark = ",")` projects.
-
-```{r, eval = FALSE}
-popular_projects <- tbl(db, "popular_projects")
+```{r}
+# subset by age
+num_weeks <- 52
+# create a list of repos that age above num_weeks
+year_selected <- (g_contributors %>% 
+  group_by(repo) %>% 
+  count() %>% 
+  subset(n >= num_weeks))$repo
 ```
 
-Then we collect the activities of these repositories over the last 6 months from Github API.
+```{r}
+# subset by size
+size_selected <- g_repo %>% 
+  mutate(repo = paste0(owner_login,"/",name)) %>% 
+  subset(repo %in% year_selected) %>% 
+  select(repo,size)
+  
+size_quantiles <- quantile(size_selected$size, probs = seq(0, 1, 0.25))
+size_quantiles
+```
+
+Next we started our data collection and dived into the exploration and evaluation of various measurements which could represent the  repository activity, and finally developed metrics with representative characteristics.
+
+## Measurements of Repository Activity
+
+By looking at the changes of these counts over time, we can get a rough picture of how fast a project gained interests from the community, how much effort the maintainers have committed to the project and how well the community engaged. These measurements describe the basic activity behavior of repository to help us summarise the activity pattern over time.
+
+### Maintainer Commitment
+
+**Number of Commits**
+
+A commit is a record of what changes were made, when and by who to repository files. Number of weekly commits is a direct way to measure how much progress the maintains have made to the repository as time goes by.
+
+```{r}
+contributions_selected <- g_contributors %>% 
+  # subset repos that age above num_weeks
+  subset(repo %in% year_selected) %>% 
+  # sum commits count by different collaborators
+  group_by(repo, week) %>% 
+  summarise(variable=sum(commits)) %>% 
+  ungroup() %>% 
+  # subset by num_weeks
+  group_by(repo) %>% 
+  mutate(id = 1:n()) %>% 
+  ungroup() %>% 
+  subset(id %in% 2:num_weeks)
+
+# separate groups
+contributions_tiny <- contributions_selected %>% 
+  left_join(size_selected, by = "repo") %>% 
+  subset(size >= size_quantiles[[1]] & size < size_quantiles[[2]])
+contributions_small <- contributions_selected %>% 
+  left_join(size_selected, by = "repo") %>% 
+  subset(size >= size_quantiles[[2]] & size < size_quantiles[[3]])
+contributions_medium <- contributions_selected %>% 
+  left_join(size_selected, by = "repo") %>% 
+  subset(size >= size_quantiles[[3]] & size < size_quantiles[[4]])
+contributions_large <- contributions_selected %>% 
+  left_join(size_selected, by = "repo") %>% 
+  subset(size >= size_quantiles[[4]] & size < size_quantiles[[5]])
+
+projects_tiny <- unique(contributions_tiny$repo)
+projects_small <- unique(contributions_small$repo)
+projects_medium <- unique(contributions_medium$repo)
+projects_large <- unique(contributions_large$repo)
+projects_selected <- c(projects_tiny,projects_small,projects_medium,projects_large)
+
+# aggregate by variable mean
+aggr_ct <- contributions_tiny %>% 
+  group_by(id) %>% 
+  summarise(average_variable = mean(variable)) %>% 
+  mutate(group = "Tiny")
+aggr_cs <- contributions_small %>% 
+  group_by(id) %>% 
+  summarise(average_variable = mean(variable)) %>% 
+  mutate(group = "Small")
+aggr_cm <- contributions_medium %>% 
+  group_by(id) %>% 
+  summarise(average_variable = mean(variable)) %>% 
+  mutate(group = "Medium")
+aggr_cl <- contributions_large %>% 
+  group_by(id) %>% 
+  summarise(average_variable = mean(variable)) %>% 
+  mutate(group = "Large")
+
+aggr_c <- rbind(aggr_ct,aggr_cs,aggr_cm,aggr_cl)
+
+# time-series plot
+ggplot(aggr_c, aes(id,average_variable,color=group)) +
+  geom_line() +
+  labs(
+    x="Number of weeks",
+    y="Number of commits",
+    title="Average Number of Weekly Commits",
+    color="Group"
+  )
+```
+
+
+**Issues Response Time**
+
+Issues are suggested improvements, tasks or questions created by anyone related to the repository, which are a great way to keep track of tasks, enhancements, and bugs for open source projects. Issues response time measures the response to the issues that are not opened by the owner, the duration between the creation and the first response (comment). Shorter the time is, more actively the maintainers support their repository.
+
+```{r}
+# get the time when the first comment created in each issue
+first_comments_tmp <- g_issue_comments %>% 
+  select(repo, issue_number, created_at) %>% 
+  arrange(repo, issue_number, created_at) %>% 
+  distinct(repo, issue_number, .keep_all=TRUE)
+
+first_comments <- first_comments_tmp %>% 
+  left_join(g_issues, by=c("repo"="repo","issue_number"="number")) %>% 
+  select(repo,issue_number,created_at.x,created_at.y,comments)
+
+first_comments$created_at.x <- ymd_hms(first_comments$created_at.x)
+first_comments$created_at.y <- ymd_hms(first_comments$created_at.y)
+
+# separate groups
+issues_response_selected <- first_comments %>% 
+  mutate(time = difftime(created_at.x,created_at.y,units="hours")) %>% 
+  # aggregate by week
+  mutate(year = year(created_at.x), week = week(created_at.x)) %>% 
+  group_by(repo, year, week) %>% 
+  summarise(variable = mean(time,na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  # subset by num_weeks
+  group_by(repo) %>% 
+  mutate(id = 1:n()) %>% 
+  ungroup() %>% 
+  subset(id %in% 2:num_weeks)
+
+# aggregate by variable mean
+aggr_by_size <- function(df_selected){
+  df_tiny <- df_selected %>% subset(repo %in% projects_tiny)
+  df_small <- df_selected %>% subset(repo %in% projects_small)
+  df_medium <- df_selected %>% subset(repo %in% projects_medium)
+  df_large <- df_selected %>% subset(repo %in% projects_large)
+
+  aggr_tiny <- df_tiny %>% 
+    group_by(id) %>% 
+    summarise(average_variable = mean(variable)) %>% 
+    mutate(group = "Tiny")
+  aggr_small <- df_small %>% 
+    group_by(id) %>% 
+    summarise(average_variable = mean(variable)) %>% 
+    mutate(group = "Small")
+  aggr_medium <- df_medium %>% 
+    group_by(id) %>% 
+    summarise(average_variable = mean(variable)) %>% 
+    mutate(group = "Medium")
+  aggr_large <- df_large %>% 
+    group_by(id) %>% 
+    summarise(average_variable = mean(variable)) %>% 
+    mutate(group = "Large")
+  
+  df_aggr <- rbind(aggr_tiny,aggr_small,aggr_medium,aggr_large)
+  return(df_aggr)
+}
+
+aggr_ir <- aggr_by_size(issues_response_selected)
+
+# time-series plot
+ggplot(aggr_ir, aes(id,average_variable,color=group)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    x="Number of weeks",
+    y="Time (hour)",
+    title="Average Issues Response Time",
+    color="Group"
+  )
+```
+
+**Issues Closed Time**
+
+Issues closed time measures the duration between the time issue created and the time issue closed (being solved). 
+
+```{r}
+g_issues$created_at <- ymd_hms(g_issues$created_at)
+g_issues$closed_at <- ymd_hms(g_issues$closed_at)
+issues_time_selected <- g_issues %>% 
+  subset(state=="closed") %>% 
+  mutate(time = difftime(closed_at,created_at,units="hours")) %>% 
+  # aggregate by week
+  mutate(year = year(created_at), week = week(created_at)) %>% 
+  group_by(repo, year, week) %>% 
+  summarise(variable = mean(time,na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  # subset num_weeks
+  group_by(repo) %>% 
+  mutate(id = 1:n()) %>% 
+  ungroup() %>% 
+  subset(id %in% 2:num_weeks)
+
+# aggregate by variable mean
+aggr_ic <- aggr_by_size(issues_time_selected)
+
+# time-series plot
+ggplot(aggr_ic, aes(id,average_variable,color=group)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    x="Number of weeks",
+    y="Time (hour)",
+    title="Average Issues Closed Time",
+    color="Group"
+  )
+```
+
+
+### Community Engagement
+
+**Number of Issues**
+
+Issues are just like the bug tracker of repository. More people engaging in the bug tracking will accelerate the maturity of repository. We measure this community engagement by checking how many issues proposed by community members weekly.
+
+```{r}
+issues_selected <- g_issues %>% 
+  subset(repo %in% projects_selected) %>% 
+  # aggregate by week
+  mutate(year = year(created_at), week = week(created_at)) %>% 
+  group_by(repo, year, week) %>% 
+  summarise(variable = n()) %>% 
+  ungroup() %>% 
+  # subset num_weeks
+  group_by(repo) %>% 
+  mutate(id = 1:n()) %>% 
+  ungroup() %>% 
+  subset(id %in% 2:num_weeks)
+
+# aggregate by variable mean
+aggr_i <- aggr_by_size(issues_selected)
+
+# time-series plot
+ggplot(aggr_i, aes(id,average_variable,color=group)) +
+  geom_line() +
+  labs(
+    x="Number of weeks",
+    y="Number of issues",
+    title="Average Number of Weekly Issues",
+    color="Group"
+  )
+```
+
+**Number of Issue Comments**
+
+Community members can comment under a issue created by either repository  maintainers or other community members. In this way they contribute solutions or propose new questions toward an issue to engage the development. We count the number of comments posted each week as a measurement of community engagement.
+
+```{r}
+g_issue_comments$created_at <- ymd_hms(g_issue_comments$created_at)
+issue_comments_selected <- g_issue_comments %>% 
+  subset(repo %in% projects_selected) %>% 
+  # aggregate by week
+  mutate(year = year(created_at), week = week(created_at)) %>% 
+  group_by(repo, year, week) %>% 
+  summarise(variable = n()) %>% 
+  ungroup() %>% 
+  # subset num_weeks
+  group_by(repo) %>% 
+  mutate(id = 1:n()) %>% 
+  ungroup() %>% 
+  subset(id %in% 2:num_weeks)
+
+# aggregate by variable mean
+aggr_ic <- aggr_by_size(issue_comments_selected)
+
+# time-series plot
+ggplot(aggr_ic, aes(id,average_variable,color=group)) +
+  geom_line() +
+  labs(
+    x="Number of weeks",
+    y="Number of issue comments",
+    title="Average Number of Weekly Issue Comments",
+    color="Group"
+  )
+```
+
+**Number of Pull Requests**
+
+Pull requests are proposed changes to a repository submitted by a community member and accepted or rejected by a repository's maintainers. It makes it possible that anyone in the community can tell maintainers about changes or improvements he/she has submitted to their repository. Therefore pull requests can be seen as the most influential activity by community performed on the repository. Weekly pull requests count is used to measure the community engagement.
+
+```{r}
+pullrequests_selected <- g_issues %>% 
+  subset(is_pull_request == 1) %>% 
+  subset(repo %in% projects_selected) %>% 
+  # aggregate by week
+  mutate(year = year(created_at), week = week(created_at)) %>% 
+  group_by(repo, year, week) %>% 
+  summarise(variable = n()) %>% 
+  ungroup() %>% 
+  # subset num_weeks
+  group_by(repo) %>% 
+  mutate(id = 1:n()) %>% 
+  ungroup() %>% 
+  subset(id %in% 2:num_weeks)
+
+# aggregate by variable mean
+aggr_pr <- aggr_by_size(pullrequests_selected)
+
+# time-series plot
+ggplot(aggr_pr, aes(id,average_variable,color=group)) +
+  geom_line() +
+  labs(
+    x="Number of weeks",
+    y="Number of pull requests",
+    title="Average Number of Weekly Pull Requests",
+    color="Group"
+  )
+```
+
+### Community Interests
+
+**Number of Stargazers**
+
+Repository Starring is a feature that lets users bookmark repositories. The average number of stargazers for a two-year-old project is XXX. How fast it reaches this number can be seen as a measurement of how well did a project promote itself. Weekly star increment is also checked for pattern exploration.
+
+```{r}
+g_stargazers$starred_at <- ymd_hms(g_stargazers$starred_at)
+stargazers_selected <- g_stargazers %>% 
+  subset(repo %in% projects_selected) %>% 
+  # aggregate by week
+  mutate(year = year(starred_at), week = week(starred_at)) %>% 
+  group_by(repo, year, week) %>% 
+  summarise(variable = n()) %>% 
+  ungroup() %>% 
+  # subset num_weeks
+  group_by(repo) %>% 
+  mutate(id = 1:n()) %>% 
+  ungroup() %>% 
+  subset(id %in% 2:num_weeks)
+
+# aggregate by variable mean
+aggr_s <- aggr_by_size(stargazers_selected)
+
+# time-series plot
+ggplot(aggr_s, aes(id,average_variable,color=group)) +
+  geom_line() +
+  labs(
+    x="Number of weeks",
+    y="Number of stargazers",
+    title="Average Number of Weekly Stargazer Increments",
+    color="Group"
+  )
+```
+
+## Aggregated Analysis
+
+### Mean & Variance of Measurements
+
+```{r}
+generate_box_part <- function(tiny_data,small_data,medium_data,large_data,measurement_chr){
+  box_t <- tiny_data %>% 
+    group_by(repo) %>% 
+    summarise(count=sum(variable)) %>% 
+    mutate(measurement=measurement_chr, group = "Tiny")
+  box_s <- small_data %>% 
+    group_by(repo) %>% 
+    summarise(count=sum(variable)) %>%
+    mutate(measurement=measurement_chr, group = "Small")
+  box_m <- medium_data %>% 
+    group_by(repo) %>% 
+    summarise(count=sum(variable)) %>%
+    mutate(measurement=measurement_chr, group = "Medium")
+  box_l <- large_data %>% 
+    group_by(repo) %>% 
+    summarise(count=sum(variable)) %>%
+    mutate(measurement=measurement_chr, group = "Large")
+  box_part <- rbind(box_t,box_s,box_m,box_l)
+  return(box_part)
+}
+
+issues_tiny <- issues_selected %>% subset(repo %in% projects_tiny)
+issues_small <- issues_selected %>% subset(repo %in% projects_small)
+issues_medium <- issues_selected %>% subset(repo %in% projects_medium)
+issues_large <- issues_selected %>% subset(repo %in% projects_large)
+
+stargazers_tiny <- stargazers_selected %>% subset(repo %in% projects_tiny)
+stargazers_small <- stargazers_selected %>% subset(repo %in% projects_small)
+stargazers_medium <- stargazers_selected %>% subset(repo %in% projects_medium)
+stargazers_large <- stargazers_selected %>% subset(repo %in% projects_large)
+
+box_commits <- generate_box_part(contributions_tiny,contributions_small,
+                           contributions_medium,contributions_large,"Commits")
+box_issues <- generate_box_part(issues_tiny,issues_small,
+                           issues_medium,issues_large,"Issues")
+box_stargazers <- generate_box_part(stargazers_tiny,stargazers_small,
+                           stargazers_medium,stargazers_large,"Stargazers")
+box_data <- rbind(box_commits,box_issues,box_stargazers)
+
+# create boxplot
+ggplot(box_data,aes(measurement,count,color=group)) +
+  geom_boxplot() +
+  scale_y_continuous(limits=c(0,2500)) +
+  labs(
+    x="Measurement",
+    y="Count",
+    title="Mean & Variance of Measurements",
+    color="Group"
+  )
+```
+
+
+### Maintainer Commitment vs. Community Engagement
+
+Total commits count and issues count for each repository
+
+```{r}
+pair_commits <- contributions_selected %>% 
+  group_by(repo) %>% 
+  summarise(commits_count = sum(variable))
+
+issues_selected %>% 
+  group_by(repo) %>% 
+  summarise(issues_count = sum(variable)) %>% 
+  left_join(pair_commits, by = "repo") %>% 
+  ggplot(aes(commits_count,issues_count)) +
+    geom_point() +
+    geom_density_2d() +
+    scale_x_continuous(limits = c(0,800)) +
+    scale_y_continuous(limits = c(0,350)) +
+    labs(
+      x="Commits count",
+      y="Issues count",
+      title="2D Density Estimate - Maintainer Commitment vs. Community Engagement"
+    )
+```
+
+### Aggregation of Three Measurements
+
+```{r}
+# Maintainer commitment
+aggr_ma_co <- contributions_selected %>% 
+  group_by(id) %>% 
+  summarise(average_count = mean(variable)) %>% 
+  mutate(measurement = "Commits", average_count = scale(average_count))
+
+# Community engagement
+aggr_co_en <- issues_selected %>% 
+  group_by(id) %>% 
+  summarise(average_count = mean(variable)) %>% 
+  mutate(measurement = "Issues", average_count = scale(average_count))
+
+# Community interests
+aggr_co_in <- stargazers_selected %>% 
+  group_by(id) %>% 
+  summarise(average_count = mean(variable)) %>% 
+  mutate(measurement = "Stargazers", average_count = scale(average_count))
+
+# Overall Aggregation three measurements
+aggregation_overall <- rbind(aggr_ma_co, aggr_co_en, aggr_co_in)
+ggplot(aggregation_overall, aes(id,average_count,color=measurement)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    x="Number of weeks",
+    y="Scaled count",
+    title="Aggregation of Three Measurements",
+    color="Measurement"
+  )
+```
+
+```{r}
+aggregate_group <- function(aggr_c,aggr_i,aggr_s){
+  aggr_ca <- aggr_c %>% 
+    mutate(measurement = "Commits", average_count = scale(average_variable)) %>% 
+    select(id, measurement, average_count, group)
+  aggr_ia <- aggr_i %>% 
+    mutate(measurement = "Issues", average_count = scale(average_variable)) %>% 
+    select(id, measurement, average_count, group)
+  aggr_sa <- aggr_s %>% 
+    mutate(measurement = "Stargazers", average_count = scale(average_variable)) %>% 
+    select(id, measurement, average_count, group)
+  aggregation_group <- rbind(aggr_ca, aggr_ia, aggr_sa)
+  return(aggregation_group)
+}
+aggr_it <- aggr_i %>% subset(group == "Tiny")
+aggr_st <- aggr_s %>% subset(group == "Tiny")
+aggr_is <- aggr_i %>% subset(group == "Small")
+aggr_ss <- aggr_s %>% subset(group == "Small")
+aggr_im <- aggr_i %>% subset(group == "Medium")
+aggr_sm <- aggr_s %>% subset(group == "Medium")
+aggr_il <- aggr_i %>% subset(group == "Large")
+aggr_sl <- aggr_s %>% subset(group == "Large")
+
+aggregation_tiny <- aggregate_group(aggr_ct,aggr_it,aggr_st)
+aggregation_small <- aggregate_group(aggr_cs,aggr_is,aggr_ss)
+aggregation_medium <- aggregate_group(aggr_cm,aggr_im,aggr_sm)
+aggregation_large <- aggregate_group(aggr_cl,aggr_il,aggr_sl)
+
+aggregation_comparison <- rbind(aggregation_tiny,aggregation_small,aggregation_medium,aggregation_large)
+
+ggplot(aggregation_comparison, aes(id,average_count,color=measurement)) +
+  geom_point(size=.5) +
+  geom_smooth(size=.8) +
+  facet_wrap( ~ group, ncol = 2) +
+  labs(
+    x="Number of weeks",
+    y="Scaled count",
+    title="Aggregation of Three Measurements by Group",
+    color="Measurement"
+  )
+```
+
+# Discussion and Future Work
 
