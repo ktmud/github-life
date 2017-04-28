@@ -276,11 +276,11 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
 # but we want to clear all information related to
 # this repo when we delete existing records
 db_id_fields <- list(
+  stargazers = "repo",
   languages = "repo",
   contributors = "repo",
   punch_card = "repo"
 )
-
 .ScrapeAndSave <- function(category, scraper) {
   # Generate a function to scrape and save to a local file
   # Return:
@@ -303,7 +303,7 @@ db_id_fields <- list(
       }
       return(-1)
     }
-    dat <- scraper(repo, ...)
+    dat <- scraper(repo)
     # return NULL if resource not available
     if (is.null(dat)) {
       if (!is.null(l_name)) msg("(X) GONE.  ")

@@ -18,7 +18,7 @@ ALTER TABLE `g_repo`
   LOCK = NONE;
 
 ALTER TABLE `g_stargazers`
-  ADD INDEX (`repo`, `starred_at`),
+  ADD INDEX (`repo`),
   ADD INDEX (`user_id`),
   ALGORITHM = INPLACE,
   LOCK = NONE;

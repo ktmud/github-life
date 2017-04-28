@@ -91,11 +91,11 @@ To better understand the data we collected, we created a [Shiny dashboard](http:
 
 When time permits, we may add more features to the dashboard, such as issues timeline: response rate, response time, resolve time, community contribution rate (commits of non-core-maintainers) etc; and aggregated measurements by different repository groups: organization, programming language, lanuage of users, region, repository objective (library, framework, cheatsheat, references) etc.
 
-But this activity timeline at current format can already help us discover some patterns from different types of projects.
+But with this simple combined activity timeline, we can already see a lot of different patterns for different projects--basically no two projects are the same. Some showed clear regular development cycles (Figure. 1 twbs/bootstrap), 
 
-Some showed clear development cycles:
+![twbs/bootstrap](images/bootstrap.png)
 
-
+![twbs/freebook](images/freebook.png)
 
 ## Grouping and Classification
 

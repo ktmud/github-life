@@ -9,15 +9,16 @@ ScrapeStargazers <- .ScrapeAndSave("stargazers", function(repo, ...) {
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (is.atomic(dat) || length(dat) == 0) return(data.frame())
-  dat %>%
+  dat %<>%
     map(function(x) {
-      c(repo = repo,
-        starred_at = parse_datetime(x$starred_at),
-        user_id = x$user$id, 
-        # also save `login` for easier table joins
-        user_login = safe_val(x$user$login))
+      c(
+        repo = repo,
+        user_id = safe_val(x$user$id, 0),
+        starred_at = parse_datetime(x$starred_at)
+      )
     }) %>%
     do.call(rbind, .) %>%
     as_tibble() %>%
     distinct(user_id, .keep_all = TRUE)
+  dat
 })

@@ -16,9 +16,9 @@ db_connect <- function(retry_count = 0) {
     )
   }, error = function(err) {
     assign("last_err", err, envir = .GlobalEnv)
-    # retry connecting for 5 times, wait for 10 secs between each retry
-    Sys.sleep(10)
-    if (retry_count > 5) {
+    # retry connecting for 3 times, wait for 5 secs between each retry
+    Sys.sleep(5)
+    if (retry_count > 3) {
       stop(err)
     }
     message("Retry connecting to MySQL...")
@@ -81,7 +81,7 @@ db_save <- function(name, value, id_field = "id", retry_count = 0) {
   if (length(id_field) > 1) {
     ids <- do.call(str_c, value[id_field])
     id_field_q <- dbQuoteIdentifier(db$con, id_field) %>% str_c(collapse = ", ")
-    id_field_q <- str_c("COCAT(", id_field_q, ")")
+    id_field_q <- str_c("CONCAT(", id_field_q, ")")
   } else {
     ids <- unlist(value[, id_field])
     id_field_q <- id_field
@@ -109,7 +109,10 @@ db_save <- function(name, value, id_field = "id", retry_count = 0) {
       db_connect()
     }
     # have already retried two times
-    if (retry_count > 2) stop(err)
+    if (retry_count > 2) {
+      message(err$msssage)
+      stop(err)
+    }
     # try one more time
     db_save(name, value, id_field, retry_count + 1)
   })

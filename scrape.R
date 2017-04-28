@@ -32,6 +32,7 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
   msg(sprintf("Batch %s ~ %s Done.", start, n_max))
 }
 
+# ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeStargazers, "stars"))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeRepoDetails, "stars"))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeLanguages))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeContributors))
