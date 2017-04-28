@@ -62,7 +62,7 @@ g_stargazers <- read_feather("data/g_stargazers.feather")
 
 With its unique and user-friendly social coding features such as issues tracking, forks,  pull requests, commit comments and wikis, GitHub has deservedly become the most popular source code hosting service in the world. Many open source developers use GitHub not only for source code management, but also to collaborate with fellow developers, share knowledge, or simply showcase their personal work. The vibrant and all-encompassing online community of GitHub makes its data a prime window on the social dynamics of open source development.
 
-This project is inspired by the magnitude and heterogeneity of GitHub’s project activity data. Our objective is to identify activity patterns for different types of open source projects and pinpoint indicators and determining factors that are most directly related to these patterns. We will do this by first split projects into 4 groups based on codebase size (tiny, small, medium, large), then examine for each group how did their community interest (measured by changes in number of stars), maintainer commitment (number of commits) and community involvement (number of issues and issue comments) unfold over time.
+This project is inspired by the magnitude and heterogeneity of GitHub’s project activity data. Our objective is to identify activity patterns for different types of open source projects and pinpoint indicators and determining factors that are most directly related to these patterns. We will do this by first exploring activity patterns using a Shiny app, then split projects into 4 groups based on codebase size (tiny, small, medium, large), and examine for each group how did their community interest (measured by changes in number of stars), maintainer commitment (number of commits) and community involvement (number of issues and issue comments) unfold over time.
 
 # Methods
 
@@ -70,14 +70,53 @@ This project is inspired by the magnitude and heterogeneity of GitHub’s projec
 
 Among the 57 million repositories GitHub is hosting ^[As of data on April 19, 2017], a large portion of them are forks or small personal projects with almost no outside visibility. In order to make the data relevant and analyzable, we shall pick only repositories of adequate community interests and values. And to make sure we still cover all different kinds of repositories, we are selecting the top 1% most starred original repositories (i.e., those were not forks) of each programming language, using GHTorrnet MySQL database dumps exported on April 1, 2017. Languages with less than 100 repositories were ignored, leaving us with 36,068 repositories in 228 languages.
 
+## Measurements of Repository Activity
+
+There are three major type of repository activities: repository starring, code commits and issues. For issues, there are also issue events and issue comments. Other types of activities also include commit comments, release downloads, milestones, etc. For simplicity, we collected only the major acticities: starring, commit counts, and issues (including issue events and comments).
+
+Most of the activities can be aggregated to weekly counts. By looking at the changes of these counts over time, we get a rough picture of how much effort the maintainers have committed to the project, how fast a project gained interests from the community, and how well the community was involved. These measurements are the most important activities that can happen for a repository on GitHub.
+
+In addition to weekly counts, we also built a two performance metrics for evaluating maitainer commitment.
+
+### Maintainer Commitment
+
+**Number of commits**
+
+A commit is an update to the files in the codebase. Number of weekly commits is a direct way of measuring how much efforts the contributors have put into the repository. It will be optimal if we can distinguish commits from core maintainers and the general public. Since that involves scraping one more dataset and this was not planned when we started the project, we are not going to make such separation of authors.
+
+**Issues response time**
+
+Issues are suggested improvements, tasks or questions created by anyone related to the repository, which are a great way to keep track of tasks, enhancements, and bugs for open source projects. Issues response time is the average time needed for an repository maitainer to take action on an issue opened by someone else. The faster the response, the more commited the maitainer is.
+
+**Issues close time**
+
+Issues close time is the duration between when the issues were created and when they were last closed, which reflects how fast an issue gets resolved.
+
+### Community Engagement
+
+**Number of issues**
+
+Issues are just like the bug tracker of repository. More people engaging in the bug tracking will accelerate the maturity of repository. We measure this community engagement by checking how many issues proposed by community members weekly.
+
+**Number of issue comments**
+
+Community members can comment under a issue created by either repository  maintainers or other community members. In this way they contribute solutions or propose new questions toward an issue to engage the development. We count the number of comments posted each week as a measurement of community engagement.
+
+**Number of pull requests**
+
+Pull requests are proposed changes to a repository submitted by a community member and accepted or rejected by a repository's maintainers. It makes it possible that anyone in the community can tell maintainers about changes or improvements he/she has submitted to their repository. Therefore pull requests can be seen as the most influential activity by community performed on the repository. Weekly pull requests count is used to measure the community engagement.
+
+### Community Interests
+
+**Number of stargazers**
+
+Repository Starring is a feature that lets users bookmark repositories. The average number of stargazers for a two-year-old project is XXX. How fast it reaches this number can be seen as a measurement of how well did a project promote itself. Weekly star increment is also checked for pattern exploration.
 
 ## Data Collection
 
 The [GHTorrent](http://ghtorrent.org/) data were used only for generating this initial seed of potentially “great” projects, then all other data were scraped directly from GitHub API. Since repositories change owner and names from time to time, and GitHub sometimes handle such case with redirections, we have inevitably encountered a few 404s as well as scraped some duplicate data. To reduce the impact of repository renaming and ownership transfers to minimal, we used the seed only for scraping repository details, then used the up to date owner logins and repository names from the repository details to scrape all other data. ^[The actual ramifications were more nuanced than this. We didn’t realize how serious this problem was before we have scraped all data, which means we had to run several SQL queries to identify those who changed names and scrape them again.]
 
 With data at such a large scale, we put our scraping program on a cloud server (AWS EC2 instance) so it can run overnight. To maximize performance and efficiency, we use MySQL to store the scraped data and are saving data on the fly while scraping. In addition to that, each time a data point was successfully saved, an near empty text file will be created in the file system and it will later be used to skip scraped data in case of servie interruptions and system fault.
-
-There are three major type of repository activities: repository starring, code commits and issues. For issues, there are also issue events and issue comments. Other types of activities also include commit comments, release downloads, milestones, etc. For simplicity, we collected only the major acticities: starring, commit counts, and issues (including issue events and comments). 
 
 At the beginning, we tried to write scraped data into the database on the fly, and didn't find a way to efficiently check whether some data has been scraped or not. Then we decide to srape all data to local files then import then to the database. For the 34,779 repositories that were still alive, we scraped 8.9G of issues data, 4.6G issue events, and 14G issue comments data (more than 30G data in total), which took us about 2 days to scrape and 20 hours to import into MySQL and build the indexes (not including time of debugging).
 
@@ -91,66 +130,24 @@ To better understand the data we collected, we created a [Shiny dashboard](http:
 
 When time permits, we may add more features to the dashboard, such as issues timeline: response rate, response time, resolve time, community contribution rate (commits of non-core-maintainers) etc; and aggregated measurements by different repository groups: organization, programming language, lanuage of users, region, repository objective (library, framework, cheatsheat, references) etc.
 
-But with this simple combined activity timeline, we can already see a lot of different patterns for different projects--basically no two projects are the same. Some showed clear regular development cycles (Figure. 1 twbs/bootstrap), 
+But with this simple combined activity timeline, we can already see a lot of different patterns for different projects--basically no two projects are the same. Some showed clear regular development cycles (Figure. 1 twbs/bootstrap); some got their initial fame very fast, but also died fast--this mostly happens to "cheatsheet" type of repositories (Figure. 2 vhf/free-programming-books); some are seeing very steady acticities as community interests keep growing (Figure 3. golang/go).
 
 ![twbs/bootstrap](images/bootstrap.png)
 
-![twbs/freebook](images/freebook.png)
+![vhf/free-programming-books](images/freebook.png)
+
+![golang/go](images/go.png)
+
+Our goal would be to detect these patterns and build a typology to describe them.
 
 ## Grouping and Classification
 
-To understand the implications of different activity patterns, we need to associate them with certain metrics. We are doing this by splitting repositories into groups and testing the differences between various aggregated measures of each group.
+To understand the implications of these activity patterns and the correlation between different metrics, we are splitting repositories into groups and compare how various metrics behave differently over groups.
 
-_equally divided the subset into 4 groups by codebase size, in order to make the activity behavior normally distributed for each group._
+We divided a subset of 2,500 repositories into 4 equal-sized groups based on codebase sizes, which gives us about 620 repositories across the whole spectrum of programming languages and community interest (stargazers count) for each group.
 
-To explore the activity patterns over time, we majorly performed the time-series analysis. So the first thing we did is to select a robust range of time as standard. Considering that the range of time must be long enough for repositories to present an obvious activity pattern, we set the first year of the repository’s life as the standard range of time. Thereby we went on subsetting the projects which were at least one years old.
+As we are mainly looking at temporal data, it would be more analyzable if every repository had the same time length of data. So the first thing we did is to filter out repositories younger than one year and only look at the first year data for each repositories. This time range is long enough for us to discover patterns, but also avoids dropping too many repositories. ^[One more caveat is that repositories created at different years might have a totally different pattern, as GitHub was getting more and more popular and its user base changes. But for simplicity reason, we are not ignoring such effects for now.].
 
-```{r}
-# repo size density
-fill <- "#4271AE"
-line <- "#1F3552"
-ggplot(g_repo, aes(size)) +
-  geom_density(fill = fill, colour = line, alpha = 0.6) +
-  scale_x_continuous(limits = c(0,30000)) +
-  labs(
-    x="Repo Size",
-    y="Density",
-    title="Density Plot of Repository Size"
-  )
-```
-
-```{r}
-# subset by age
-num_weeks <- 52
-# create a list of repos that age above num_weeks
-year_selected <- (g_contributors %>% 
-  group_by(repo) %>% 
-  count() %>% 
-  subset(n >= num_weeks))$repo
-```
-
-```{r}
-# subset by size
-size_selected <- g_repo %>% 
-  mutate(repo = paste0(owner_login,"/",name)) %>% 
-  subset(repo %in% year_selected) %>% 
-  select(repo,size)
-  
-size_quantiles <- quantile(size_selected$size, probs = seq(0, 1, 0.25))
-size_quantiles
-```
-
-Next we started our data collection and dived into the exploration and evaluation of various measurements which could represent the  repository activity, and finally developed metrics with representative characteristics.
-
-## Measurements of Repository Activity
-
-By looking at the changes of these counts over time, we can get a rough picture of how fast a project gained interests from the community, how much effort the maintainers have committed to the project and how well the community engaged. These measurements describe the basic activity behavior of repository to help us summarise the activity pattern over time.
-
-### Maintainer Commitment
-
-**Number of Commits**
-
-A commit is a record of what changes were made, when and by who to repository files. Number of weekly commits is a direct way to measure how much progress the maintains have made to the repository as time goes by.
 
 ```{r}
 contributions_selected <- g_contributors %>% 
@@ -217,10 +214,6 @@ ggplot(aggr_c, aes(id,average_variable,color=group)) +
   )
 ```
 
-
-**Issues Response Time**
-
-Issues are suggested improvements, tasks or questions created by anyone related to the repository, which are a great way to keep track of tasks, enhancements, and bugs for open source projects. Issues response time measures the response to the issues that are not opened by the owner, the duration between the creation and the first response (comment). Shorter the time is, more actively the maintainers support their repository.
 
 ```{r}
 # get the time when the first comment created in each issue
@@ -292,10 +285,6 @@ ggplot(aggr_ir, aes(id,average_variable,color=group)) +
   )
 ```
 
-**Issues Closed Time**
-
-Issues closed time measures the duration between the time issue created and the time issue closed (being solved). 
-
 ```{r}
 g_issues$created_at <- ymd_hms(g_issues$created_at)
 g_issues$closed_at <- ymd_hms(g_issues$closed_at)
@@ -329,12 +318,6 @@ ggplot(aggr_ic, aes(id,average_variable,color=group)) +
 ```
 
 
-### Community Engagement
-
-**Number of Issues**
-
-Issues are just like the bug tracker of repository. More people engaging in the bug tracking will accelerate the maturity of repository. We measure this community engagement by checking how many issues proposed by community members weekly.
-
 ```{r}
 issues_selected <- g_issues %>% 
   subset(repo %in% projects_selected) %>% 
@@ -362,10 +345,6 @@ ggplot(aggr_i, aes(id,average_variable,color=group)) +
     color="Group"
   )
 ```
-
-**Number of Issue Comments**
-
-Community members can comment under a issue created by either repository  maintainers or other community members. In this way they contribute solutions or propose new questions toward an issue to engage the development. We count the number of comments posted each week as a measurement of community engagement.
 
 ```{r}
 g_issue_comments$created_at <- ymd_hms(g_issue_comments$created_at)
@@ -396,10 +375,6 @@ ggplot(aggr_ic, aes(id,average_variable,color=group)) +
   )
 ```
 
-**Number of Pull Requests**
-
-Pull requests are proposed changes to a repository submitted by a community member and accepted or rejected by a repository's maintainers. It makes it possible that anyone in the community can tell maintainers about changes or improvements he/she has submitted to their repository. Therefore pull requests can be seen as the most influential activity by community performed on the repository. Weekly pull requests count is used to measure the community engagement.
-
 ```{r}
 pullrequests_selected <- g_issues %>% 
   subset(is_pull_request == 1) %>% 
@@ -429,12 +404,6 @@ ggplot(aggr_pr, aes(id,average_variable,color=group)) +
   )
 ```
 
-### Community Interests
-
-**Number of Stargazers**
-
-Repository Starring is a feature that lets users bookmark repositories. The average number of stargazers for a two-year-old project is XXX. How fast it reaches this number can be seen as a measurement of how well did a project promote itself. Weekly star increment is also checked for pattern exploration.
-
 ```{r}
 g_stargazers$starred_at <- ymd_hms(g_stargazers$starred_at)
 stargazers_selected <- g_stargazers %>% 
@@ -463,6 +432,46 @@ ggplot(aggr_s, aes(id,average_variable,color=group)) +
     color="Group"
   )
 ```
+
+
+# Data Analysis
+
+```{r}
+# repo size density
+fill <- "#4271AE"
+line <- "#1F3552"
+ggplot(g_repo, aes(size)) +
+  geom_density(fill = fill, colour = line, alpha = 0.6) +
+  scale_x_continuous(limits = c(0,30000)) +
+  labs(
+    x="Repo Size",
+    y="Density",
+    title="Density Plot of Repository Size"
+  )
+```
+
+```{r}
+# subset by age
+num_weeks <- 52
+# create a list of repos that age above num_weeks
+year_selected <- (g_contributors %>% 
+  group_by(repo) %>% 
+  count() %>% 
+  subset(n >= num_weeks))$repo
+```
+
+```{r}
+# subset by size
+size_selected <- g_repo %>% 
+  mutate(repo = paste0(owner_login,"/",name)) %>% 
+  subset(repo %in% year_selected) %>% 
+  select(repo,size)
+  
+size_quantiles <- quantile(size_selected$size, probs = seq(0, 1, 0.25))
+size_quantiles
+```
+
+Next we started our data collection and dived into the exploration and evaluation of various measurements which could represent the  repository activity, and finally developed metrics with representative characteristics.
 
 ## Aggregated Analysis
 
