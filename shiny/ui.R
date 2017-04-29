@@ -100,6 +100,7 @@ single_repo_tab <- div(
           'Issue events break down by',
           tags$a(
             href = "https://developer.github.com/v3/issues/events/#events-1",
+            target = "_blank",
             "event types"
           ),
           ". Showing up to only 40,000 events."
