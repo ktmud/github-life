@@ -7,22 +7,33 @@ if (!exists("cache")) {
   cache <- LRUcache("100mb") 
 }
 
-RepoStats <- function(repo,
-                      col_name = "commits",
-                      group_others = TRUE) {
-  repo <- as.character(repo)
-  key <- str_c("issue_stats_", repo)
-  if (cache$exists(key)) {
-    return(cache$get(key))
-  }
-  dat <- db_get(sprintf(
-    "
+.cached <- function(prefix, FUN) {
+  return(function(repo, ...) {
+    if (is.null(repo)) return()
+    repo <- as.character(repo)
+    key <- str_c(prefix, "__", repo)
+    if (cache$exists(key)) {
+      return(cache$get(key))
+    }
+    ret <- FUN(repo, ...)
+    cache$set(key, ret)
+    ret
+  })
+}
+
+RepoStats <- .cached("stats", function(repo,
+                                       col_name = "commits",
+                                       group_others = TRUE) {
+  dat <- db_get(
+    sprintf(
+      "
       SELECT week, author, %s FROM g_contributors
       WHERE repo = %s
       ",
-    dbQuoteIdentifier(db$con, col_name),
-    dbQuoteString(db$con, repo)
-  ))
+      dbQuoteIdentifier(db$con, col_name),
+      dbQuoteString(db$con, repo)
+    )
+  )
   if (nrow(dat) > 0) {
     dat <- dat %>%
       .[, c("week", "author", col_name)]
@@ -33,10 +44,8 @@ RepoStats <- function(repo,
     # give an empty row
     dat <- data.frame()
   }
-  dat %<>% FillEmptyWeeks()
-  cache$set(key, dat)
-  dat
-}
+  dat %>% FillEmptyWeeks()
+})
 
 CollapseOthers <-
   function(dat,
@@ -73,7 +82,7 @@ CollapseOthers <-
     dat
   }
 
-RepoIssues <- function(repo) {
+RepoIssues <- .cached("issues", function(repo) {
   db_get(
     sprintf(
       "
@@ -88,13 +97,10 @@ RepoIssues <- function(repo) {
       dbQuoteString(db$con, repo)
     )
   ) %>% FillEmptyWeeks()
-}
-RepoIssueEvents <- function(repo) {
-  key <- str_c('issue_events_', repo)
-  if (cache$exists(key)) {
-    return(cache$get(key))
-  }
-  dat <- db_get(
+})
+
+RepoIssueEvents <- .cached("issue_events", function(repo) {
+  db_get(
     sprintf(
       "
       SELECT
@@ -109,11 +115,9 @@ RepoIssueEvents <- function(repo) {
       dbQuoteString(db$con, repo)
     )
   ) %>% CollapseOthers("event", keep_n = 6)
-  cache$set(key, dat)
-  dat
-}
-RepoStargazers <- function(repo) {
-  db_get(sprintf("
+})
+RepoStargazers <- .cached("stargazers", function(repo) {
+  dat <- db_get(sprintf("
     SELECT
       `repo`,
       DATE(SUBDATE(SUBDATE(`starred_at`, WEEKDAY(`starred_at`)), 1)) AS `week`,
@@ -123,7 +127,7 @@ RepoStargazers <- function(repo) {
     GROUP BY `week`
   ", dbQuoteString(db$con, repo))) %>%
     FillEmptyWeeks()
-}
+})
 
 PlotRepoTimeline <- function(repo) {
   if (is.null(repo) || repo == "") {
@@ -211,7 +215,7 @@ PlotRepoIssueEventsTimeline <- function(repo) {
   p
 }
 
-GetRepoDetails <- function(repo) {
+GetRepoDetails <- .cached("repo", function(repo) {
   if (is.null(repo) || !str_detect(repo, ".+/.+")) return()
   tmp <- str_split(repo, "/") %>% unlist()
   dat <- db_get(sprintf(
@@ -224,7 +228,7 @@ GetRepoDetails <- function(repo) {
   dat$repo <- repo
   dat$exists <- TRUE
   dat
-}
+})
 RenderRepoDetails <- function(d) {
   if (is.null(d)) {
     return(
