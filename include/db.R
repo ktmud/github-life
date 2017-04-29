@@ -87,7 +87,8 @@ db_save <- function(name, value, id_field = "id", retry_count = 0) {
     id_field_q <- id_field
     id_field_q <- dbQuoteIdentifier(db$con, id_field)
   }
-  ids <- ids %>% unique()
+  # make sure the ids are in ascending order to avoid deadlock
+  ids <- ids %>% unique() %>% sort()
   if (is.character(ids)) {
     # quote strings
     ids <- dbQuoteString(db$con, ids)
