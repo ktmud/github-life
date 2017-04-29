@@ -51,4 +51,7 @@ shiny_server <- shinyServer(function(input, output, session) {
   output$repo_issues_timeline <- renderPlotly({
     PlotRepoIssueTimeline(getDetails()$repo)
   })
+  output$repo_issue_events <- renderPlotly({
+    PlotRepoIssueEventsTimeline(getDetails()$repo)
+  })
 })

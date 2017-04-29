@@ -1,10 +1,20 @@
 #
 # Get Repository details
 # 
+library(cacher)
+
+if (!exists("cache")) {
+  cache <- LRUcache("100mb") 
+}
+
 RepoStats <- function(repo,
                       col_name = "commits",
                       group_others = TRUE) {
   repo <- as.character(repo)
+  key <- str_c("issue_stats_", repo)
+  if (cache$exists(key)) {
+    return(cache$get(key))
+  }
   dat <- db_get(sprintf(
     "
       SELECT week, author, %s FROM g_contributors
@@ -17,41 +27,90 @@ RepoStats <- function(repo,
     dat <- dat %>%
       .[, c("week", "author", col_name)]
     names(dat) <- c("week", "author", "count")
-    top_author <- dat %>%
-      group_by(author) %>%
-      summarize(n = sum(count)) %>%
-      # we need this diff rate to filter out
-      # very small contributors
-      mutate(p = n / max(n)) %>%
-      arrange(desc(n)) %>%
-      filter(p > .1) %>%
-      head(5)
-    dat.top <- dat %>%
-      filter(author %in% top_author$author)
-    dat <- dat %>%
-      filter(!(author %in% top_author$author)) %>%
-      group_by(week) %>%
-      # count of others authors
-      summarise(`count` = sum(count)) %>%
-      mutate(author = "<i>others</i>") %>%
-      bind_rows(dat.top)
+    dat <- CollapseOthers(dat, "author", "count")
     dat$week <- as.Date(dat$week)
   } else {
     # give an empty row
     dat <- data.frame()
   }
+  dat %<>% FillEmptyWeeks()
+  cache$set(key, dat)
   dat
 }
+
+CollapseOthers <-
+  function(dat,
+           keycol = "author",
+           valcol = "count",
+           keep_n = 5,
+           others = "<i>others</i>") {
+    
+    dat$keycol <- dat[[keycol]]
+    dat$valcol <- dat[[valcol]]
+    
+    top_author <- dat %>%
+      group_by(keycol) %>%
+      summarize(n = sum(valcol)) %>%
+      # we need this diff rate to filter out
+      # very small contributors
+      mutate(p = n / max(n)) %>%
+      arrange(desc(n)) %>%
+      filter(p > .1) %>%
+      head(keep_n)
+    dat.top <- dat %>%
+      filter(keycol %in% top_author$keycol)
+    dat <- dat %>%
+      filter(!(keycol %in% top_author$keycol)) %>%
+      group_by(week) %>%
+      # count of others authors
+      summarise(valcol = sum(valcol)) %>%
+      mutate(keycol = "<i>others</i>") %>%
+      bind_rows(dat.top, .)
+    dat[[keycol]] <- dat$keycol
+    dat[[valcol]] <- dat$valcol
+    dat$keycol <- NULL
+    dat$valcol <- NULL
+    dat
+  }
+
 RepoIssues <- function(repo) {
-  db_get(sprintf("
-    SELECT
+  db_get(
+    sprintf(
+      "
+      SELECT
       `repo`,
       DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`,
       count(*) as `n_issues`
-    FROM `g_issues`
-    WHERE `repo` = %s
-    GROUP BY `week`
-  ", dbQuoteString(db$con, repo)))
+      FROM `g_issues`
+      WHERE `repo` = %s
+      GROUP BY `week`
+      ",
+      dbQuoteString(db$con, repo)
+    )
+  ) %>% FillEmptyWeeks()
+}
+RepoIssueEvents <- function(repo) {
+  key <- str_c('issue_events_', repo)
+  if (cache$exists(key)) {
+    return(cache$get(key))
+  }
+  dat <- db_get(
+    sprintf(
+      "
+      SELECT
+        `repo`,
+        DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`,
+        `event`,
+        count(*) as `count`
+        FROM `g_issue_events`
+        WHERE `repo` = %s
+      GROUP BY `week`, `event`
+      ",
+      dbQuoteString(db$con, repo)
+    )
+  ) %>% CollapseOthers("event", keep_n = 6)
+  cache$set(key, dat)
+  dat
 }
 RepoStargazers <- function(repo) {
   db_get(sprintf("
@@ -62,7 +121,8 @@ RepoStargazers <- function(repo) {
     FROM `g_stargazers`
     WHERE `repo` = %s
     GROUP BY `week`
-  ", dbQuoteString(db$con, repo)))
+  ", dbQuoteString(db$con, repo))) %>%
+    FillEmptyWeeks()
 }
 
 PlotRepoTimeline <- function(repo) {
@@ -88,16 +148,6 @@ PlotRepoTimeline <- function(repo) {
     return(EmptyPlot("No data found! :("))
   }
   
-  mindate <- min(issues$week, repo_stats$week, stargazers$week,
-                 na.rm = TRUE)
-  maxdate <- max(issues$week, repo_stats$week, stargazers$week,
-                 na.rm = TRUE)
-  
-  # since these two are line charts, we'd need to
-  # fill zeros for empty weeks so to make the graph continous.
-  issues %<>% FillEmptyWeeks(mindate, maxdate)
-  stargazers %<>% FillEmptyWeeks(mindate, maxdate)
-  
   p <- plot_ly(repo_stats, x = ~week, y = ~count, opacity = 0.6,
                color = ~author, type = "bar")
   if (nrow(issues) > 0) {
@@ -113,38 +163,52 @@ PlotRepoTimeline <- function(repo) {
       mutate(star_scaled = n_stargazers * diffrate)
     p %<>% add_lines(data = stargazers, x = ~week, y = ~star_scaled,
                      opacity = 1,
+                     visible = "legendonly",
                      mode = "lines+markers",
                      # line = list(width = 1),
                      name = "<b>stars (scaled)</b>", color = I("#fb8532"))
   }
+  
+  mindate <- min(issues$week, repo_stats$week,
+                 stargazers$week, na.rm = TRUE)
+  maxdate <- max(issues$week, repo_stats$week,
+                 stargazers$week, na.rm = TRUE)
   p %<>% layout(
     barmode = "stack",
     yaxis = list(title = "Count"),
     xaxis = list(
       title = "Week",
-      rangeselector = RangeSelector(mindate, maxdate)
+      rangemode = "nonnegetive",
+      rangeselector = RangeSelector(repo_stats$week)
     ))
   p
 }
 
-PlotRepoIssueTimeline <- function(repo) {
+PlotRepoIssueEventsTimeline <- function(repo) {
   if (is.null(repo) || repo == "") {
     return(EmptyPlot(""))
   }
   if (!(repo %in% repo_choices$repo)) {
     return(EmptyPlot(""))
   }
-  # The detailed metrics of repos
-  reponame <- repo
-  events <- ght$g_issue_events %>%
-    filter(repo == reponame) %>%
-    # inside {} is MySQL functions
-    group_by(week = { DATE(
-      SUBDATE(SUBDATE(created_at, WEEKDAY(created_at)), 1)
-    ) }) %>%
-    count(event) %>%
-    # show_query() %>%
-    collect()
+  repo_stats <- RepoStats(repo)
+  events <- RepoIssueEvents(repo) %>%
+    FillEmptyWeeks(mindate = min(repo_stats$week), max(repo_stats$week))
+  p <- plot_ly(
+    events,
+    x = ~ week,
+    y = ~ count,
+    color = ~ event,
+    type = "bar"
+  )
+  p %<>% layout(
+    barmode = "stack",
+    yaxis = list(title = "Count"),
+    xaxis = list(
+      title = "Week",
+      rangeselector = RangeSelector(events$week)
+    ))
+  p
 }
 
 GetRepoDetails <- function(repo) {

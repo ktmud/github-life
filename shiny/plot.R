@@ -19,7 +19,15 @@ EmptyPlot <- function(msg = "Pick a repository to start exploring...") {
     config(displayModeBar = F)
 }
 
-RangeSelector <- function(mindate, maxdate) {
+RangeSelector <- function(...) {
+  args <- list(...)
+  if (length(args) == 1) {
+    mindate <- min(args[[1]])
+    maxdate <- max(args[[1]])
+  } else {
+    mindate <- args[[1]]
+    maxdate <- args[[2]]
+  }
   btns <- list()
   diffdays <- as.double(maxdate - mindate, units = "days")
   if (diffdays > 30 * 4) {
@@ -63,11 +71,23 @@ RangeSelector <- function(mindate, maxdate) {
   }
 }
 
-FillEmptyWeeks <- function(dat, mindate, maxdate) {
-  if (nrow(dat) == 0) return(dat)
-  if (any(is.na(dat$week))) return(dat) 
-  dat.full <- data.frame(week = seq(mindate, maxdate, 7)) %>%
-    full_join(dat, by = "week") 
-  dat.full[is.na(dat.full)] <- 0
-  dat.full
-}
+FillEmptyWeeks <-
+  function(dat,
+           mindate = NULL,
+           maxdate = NULL,
+           fillwith = 0) {
+    if (nrow(dat) == 0)
+      return(dat)
+    if (any(is.na(dat$week))) {
+      # ignore data with NA's
+      return(dat)
+    }
+    if (is.null(mindate))
+      mindate = min(dat$week)
+    if (is.null(maxdate))
+      maxdate = max(dat$week)
+    dat.full <- data.frame(week = seq(mindate, maxdate, 7)) %>%
+      full_join(dat, by = "week")
+    dat.full[is.na(dat.full)] <- fillwith
+    dat.full
+  }

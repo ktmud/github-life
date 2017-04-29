@@ -15,7 +15,7 @@ db_connect <- function(retry_count = 0) {
       password = Sys.getenv("MYSQL_PASSWD")
     )
   }, error = function(err) {
-    assign("last_err", err, envir = .GlobalEnv)
+    # assign("last_err", err, envir = .GlobalEnv)
     # retry connecting for 3 times, wait for 5 secs between each retry
     Sys.sleep(5)
     if (retry_count > 3) {

@@ -79,9 +79,30 @@ single_repo_tab <- div(
           "Number of commits from top contributors and
           number of new issues reported and new stargazers added each week.",
           tags$br(),
-          "number of stargazers are scaled with",
-          tags$code("n * mean(issues) / mean(stars)."),
-          "Some stargazers were not scraped because of GitHub API's limit."
+          "Number of stargazers are hidden by default, and is scaled with",
+          tags$code("n * mean(issues) / mean(stars)"),
+          ". The data sometimes is incomplete because GitHub only returns
+             40,000 records at most."
+        )
+      )
+    ),
+    column(
+      width = 12,
+      box(
+        width = NULL,
+        id = "repo-issue-events",
+        title = div(
+          "Issue events breakdown"
+        ),
+        plotlyOutput("repo_issue_events", height = "350px"),
+        div(
+          class = "info",
+          'Issue events break down by',
+          tags$a(
+            href = "https://developer.github.com/v3/issues/events/#events-1",
+            "event types"
+          ),
+          ". Showing up to only 40,000 events."
         )
       )
     )
@@ -104,6 +125,7 @@ body <- dashboardBody(
     tabItem(tabName = "org", h2("Organizations")
     )
   ),
+  HTML(read_file("www/disqus.html")),
   tags$script(read_file("www/app.js"))
 )
 
