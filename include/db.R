@@ -64,7 +64,7 @@ db_get <- function(query, retry_count = 0) {
 }
 
 # ======== Database functions ====================
-db_save <- function(name, value, id_field = "id", retry_count = 0) {
+db_save <- function(name, value, retry_count = 0) {
   # remove existing data then save the latest data to database
   # we are doing this because there's no easy way to do upsert
   # Args:
@@ -72,36 +72,11 @@ db_save <- function(name, value, id_field = "id", retry_count = 0) {
   #   value - the values in a data frame, must have a `id` column
   # Return: whether writeTable succeed.
   if (nrow(value) < 1) return(TRUE)
-  if (is.null(id_field)) id_field = "id"
   
-  last_value <<- value
-  last_name <<- name
   name_q <- dbQuoteIdentifier(db$con, name)
-  # handle multi column unique columns
-  if (length(id_field) > 1) {
-    ids <- do.call(str_c, value[id_field])
-    id_field_q <- dbQuoteIdentifier(db$con, id_field) %>% str_c(collapse = ", ")
-    id_field_q <- str_c("CONCAT(", id_field_q, ")")
-  } else {
-    ids <- unlist(value[, id_field])
-    id_field_q <- id_field
-    id_field_q <- dbQuoteIdentifier(db$con, id_field)
-  }
-  # make sure the ids are in ascending order to avoid deadlock
-  ids <- ids %>% unique() %>% sort()
-  if (is.character(ids)) {
-    # quote strings
-    ids <- dbQuoteString(db$con, ids)
-  }
   tryCatch({
-    dbExecute(db$con,
-              sprintf(
-                "DELETE FROM %s WHERE %s IN ( %s )",
-                name_q,
-                id_field_q,
-                str_c(ids, collapse = ", ")
-              ))
-    dbWriteTable(db$con, name, value, append = TRUE)
+    dbWriteTable(db$con, name, value, append = TRUE,
+                 onduplicate = "replace")
   }, error = function(err) {
     assign("last_err", err, envir = .GlobalEnv)
     # if the error was server gone away, try reconnect
@@ -115,7 +90,7 @@ db_save <- function(name, value, id_field = "id", retry_count = 0) {
       stop(err)
     }
     # try one more time
-    db_save(name, value, id_field, retry_count + 1)
+    db_save(name, value, retry_count + 1)
   })
   return(TRUE)
 }

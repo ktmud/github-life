@@ -55,7 +55,7 @@ install.packages(c("tidyverse", "dplyr", "lubridate", "future"))
 install.packages("devtools")
 devtools::install_github("r-pkgs/gh")
 devtools::install_github("rstats-db/DBI")
-devtools::install_github("rstats-db/RMySQL")
+devtools::install_github("ktmud/RMySQL@upsert")
 devtools::install_github("hadley/ggplot2")
 devtools::install_github("ropensci/plotly")
 ```

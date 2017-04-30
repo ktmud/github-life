@@ -272,15 +272,6 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   res
 }
 
-# these IDs might actually be duplicate
-# but we want to clear all information related to
-# this repo when we delete existing records
-db_id_fields <- list(
-  stargazers = "repo",
-  languages = "repo",
-  contributors = "repo",
-  punch_card = "repo"
-)
 .ScrapeAndSave <- function(category, scraper) {
   # Generate a function to scrape and save to a local file
   # Return:
@@ -320,7 +311,7 @@ db_id_fields <- list(
     }
     if (n > 0) {
       # save data to database.
-      db_save(str_c("g_", category), dat, id_field = db_id_fields[[category]])
+      db_save(str_c("g_", category), dat)
       # write the number to a local file,
       # this file will be used to determine whether this data point
       # has been scraped.
