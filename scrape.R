@@ -34,7 +34,7 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
 
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeStargazers, "stars"))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeRepoDetails, "stars"))
-# ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeLanguages))
+# ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeLanguages, "lang"))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeContributors))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapePunchCard, NULL))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeIssueEvents, "i_evts"))

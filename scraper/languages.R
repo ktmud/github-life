@@ -13,4 +13,3 @@ ScrapeLanguages <- .ScrapeAndSave("languages", function(repo, ...) {
     size = dat[,1]
   )
 })
-ScrapeLanguages("twbs/bootstrap")

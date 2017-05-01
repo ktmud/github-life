@@ -336,12 +336,15 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # write the number to a local file,
       # this file will be used to determine whether this data point
       # has been scraped.
-      last_item_date <- sort(dat$created_at) %>% last()
-      if (is.null(last_item_date)) last_item_date <- Sys.time()
-      last_item_date <- (ymd_hms(last_item_date)) %>%
-        format("%Y-%m-%dT%H:%M:%SZ")
-      write_file(last_item_date, fpath)
-      # write_file(as.character(n), fpath)
+      if (("created_at" %in% names(dat))) {
+        last_item_date <- sort(dat$created_at) %>% last()
+        if (is.null(last_item_date)) last_item_date <- Sys.time()
+        last_item_date <- (ymd_hms(last_item_date)) %>%
+          format("%Y-%m-%dT%H:%M:%SZ")
+        write_file(last_item_date, fpath)
+      } else {
+        write_file(as.character(n), fpath)
+      }
     }
     if (!is.null(l_name)) {
       cat(pad(n, l_n), l_name)
