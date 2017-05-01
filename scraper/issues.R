@@ -4,7 +4,7 @@ ScrapeIssues <-
                                     state = "all",
                                     sort = "created",
                                     direction = "asc",
-                                    since = "",
+                                    since = "1970-01-01T00:00:00Z",
                                     ...) {
   # Scrape all issues of a repo
   # Use direction `asc` to always scrape the latest items last
@@ -40,19 +40,10 @@ ScrapeIssues <-
     distinct(id, .keep_all = TRUE)
 })
 
-ScrapeIssueEvents <- .ScrapeAndSave("issue_events", function(repo,
-                                                             direction = "asc",
-                                                             since = "",
-                                                             ...) {
+ScrapeIssueEvents <- .ScrapeAndSave("issue_events",
+                                    function(repo, ...) {
   # Scrape all issue events of a repo
-  dat <-
-    gh(
-      "/repos/:repo/issues/events",
-      repo = repo,
-      direction = direction,
-      since = since,
-      ...
-    )
+  dat <- gh("/repos/:repo/issues/events", repo = repo, ...)
   if (is.null(dat)) return()
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %>%
@@ -79,13 +70,13 @@ get_issue_number <- function(x) {
     str_match("/issues/([0-9]+)") %>%
     .[1, 2] %>% as.integer()
 }
-ScrapeIssueComments <-
-  .ScrapeAndSave("issue_comments", function(repo,
-                                            sort = "created",
-                                            direction = "asc",
-                                            since = "",
-                                            ...) {
-    
+ScrapeIssueComments <- .ScrapeAndSave("issue_comments",
+                                      function(repo,
+                                               sort = "created",
+                                               direction = "asc",
+                                               since = "1970-01-01T00:00:00Z",
+                                               ...) {
+                                        
   # Scrape all issue commens of a repo
   dat <- gh("/repos/:repo/issues/comments", repo = repo,
             sort = sort, direction = direction, since = since, ...)

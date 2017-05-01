@@ -64,7 +64,7 @@ cl_execute <- function(fetcher) {
     # this .GlobalEnv is actually the env of the child process
     f[[length(f) + 1]] <<- future(eval(myexp, envir = .GlobalEnv))
     message("Queued: ", partition[i])
-    if (as.numeric(Sys.time() - start_time, units = "mins") > 15) {
+    if (as.numeric(Sys.time() - start_time, units = "mins") > 5) {
       # The memory in forked R sessions seems never recycled.
       # We'd have to restart the whole cluster once in a while
       # in order to keep the memory consumption under control.
@@ -88,7 +88,7 @@ cl_execute <- function(fetcher) {
 # nonexisting <- ListNotScrapedRepos(limit = 50000)
 # n_total <- nrow(nonexisting)
 n_total <- nrow(available_repos)
-partition <- seq(0, n_total + 1, 100)
+partition <- seq(0, n_total + 1, 20)
 
 # 1. Scrape different data categories one by one
 cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
@@ -99,15 +99,16 @@ cl_execute('FetcherOf(ScrapePunchCard, NULL)')
 # run though each data category at least twice, to avoid zero results
 # becauses of GitHub's mssing cache
 cl_execute('FetcherOf(ScrapeContributors, "weeks")')
+cl_execute('FetcherOf(ScrapeStargazers, "stars")')
+cl_execute('FetcherOf(ScrapeIssues, "issues")')
+cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
+cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
+
 cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 cl_execute('FetcherOf(ScrapeStargazers, "stars")')
-cl_execute('FetcherOf(ScrapeStargazers, "stars")')
 cl_execute('FetcherOf(ScrapeIssues, "issues")')
-cl_execute('FetcherOf(ScrapeIssues, "issues")')
-cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
-cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
 cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
-cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
+cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
 
 # 2. Or, you can chose to scrape repository one by one
 # cl_excute("FetchAll")

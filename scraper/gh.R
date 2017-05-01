@@ -291,20 +291,28 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
                   l_name = NULL, l_n = 5, ...) {
     fpath <- fname(repo, category)
     fexists <- file.exists(fpath)
+    
+    if (!has_since && skip_existing && fexists) {
+      if (!is.null(l_name)) {
+        cat(pad(".", l_n), l_name)
+      }
+      return(-1)
+    }
+    
     if (has_since) {
+      since <- "1970-01-01T00:00:00Z"
       if (fexists) {
         since <- read_file(fpath)
-      } else {
-        since <- ""
+        # if file content is all numeric numbers,
+        # then from legacy files
+        # use file mtime as the since time
+        if (str_length(since) != 20) {
+          since <- (as.POSIXlt(file.mtime(fpath), tz = "UTC") - seconds(60)) %>%
+            format("%Y-%m-%dT%H:%M:%SZ")
+        }
       }
       dat <- scraper(repo, since = since)
     } else {
-      if (skip_existing && fexists) {
-        if (!is.null(l_name)) {
-          cat(pad(".", l_n), l_name)
-        }
-        return(-1)
-      }
       dat <- scraper(repo)
     }
     
@@ -328,11 +336,12 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # write the number to a local file,
       # this file will be used to determine whether this data point
       # has been scraped.
-      last_item_date <- dat[n, ]$created_at
+      last_item_date <- sort(dat$created_at) %>% last()
       if (is.null(last_item_date)) last_item_date <- Sys.time()
       last_item_date <- (ymd_hms(last_item_date)) %>%
         format("%Y-%m-%dT%H:%M:%SZ")
       write_file(last_item_date, fpath)
+      # write_file(as.character(n), fpath)
     }
     if (!is.null(l_name)) {
       cat(pad(n, l_n), l_name)
