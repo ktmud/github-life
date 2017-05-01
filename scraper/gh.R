@@ -136,7 +136,7 @@ next_page <- function(res) {
 }
 
 
-gh <- function(..., verbose = FALSE, retry_count = 0) {
+gh <- function(..., verbose = TRUE, retry_count = 0) {
   # GH function with ratelimit. Overriding the function
   # is necessary because we want to handle pagination manually.
   # Args:
@@ -334,8 +334,8 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # write the number to a local file,
       # this file will be used to determine whether this data point
       # has been scraped.
-      if (("created_at" %in% names(dat))) {
-        last_item_date <- sort(dat$created_at) %>% last()
+      if (("updated_at" %in% names(dat))) {
+        last_item_date <- na.omit(dat$updated_at) %>% sort() %>% last()
         if (is.null(last_item_date)) last_item_date <- Sys.time()
         last_item_date <- (ymd_hms(last_item_date)) %>%
           format("%Y-%m-%dT%H:%M:%SZ")
