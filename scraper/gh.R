@@ -283,18 +283,31 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   #  else
   #    number of records scraped
   #  whose first two parameters will always be `repo` and `skip_existing`
+  
+  # check whether the function supports a `since` argument
+  has_since <- any(str_detect(attr(scraper, "srcref"), "since *="))
+  
   return(function(repo, skip_existing = TRUE,
                   l_name = NULL, l_n = 5, ...) {
     fpath <- fname(repo, category)
-    fsize <- file.size(fpath)
-    # if ths file exists and size is not zero, skip
-    if (skip_existing && !is.na(fsize) && fsize != 0) {
-      if (!is.null(l_name)) {
-        cat(pad(".", l_n), l_name)
+    fexists <- file.exists(fpath)
+    if (has_since) {
+      if (fexists) {
+        since <- read_file(fpath)
+      } else {
+        since <- ""
       }
-      return(-1)
+      dat <- scraper(repo, since = since)
+    } else {
+      if (skip_existing && fexists) {
+        if (!is.null(l_name)) {
+          cat(pad(".", l_n), l_name)
+        }
+        return(-1)
+      }
+      dat <- scraper(repo)
     }
-    dat <- scraper(repo)
+    
     # return NULL if resource not available
     if (is.null(dat)) {
       if (!is.null(l_name)) msg("(X) GONE.  ")
@@ -315,7 +328,11 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
       # write the number to a local file,
       # this file will be used to determine whether this data point
       # has been scraped.
-      write_file(as.character(n), fpath)
+      last_item_date <- dat[n, ]$created_at
+      if (is.null(last_item_date)) last_item_date <- Sys.time()
+      last_item_date <- (ymd_hms(last_item_date)) %>%
+        format("%Y-%m-%dT%H:%M:%SZ")
+      write_file(last_item_date, fpath)
     }
     if (!is.null(l_name)) {
       cat(pad(n, l_n), l_name)

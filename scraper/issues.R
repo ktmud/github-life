@@ -1,25 +1,16 @@
-# Since we are saving additional user info in each table,
-# there is no need to do this any more
-# list of users can be generated later in MySQL
-# SaveUsers <- function(items) {
-#   users <- items %>%
-#     map(function(user) {
-#       if (is.null(user)) return(NULL)
-#       c(id = user$id, login = user$login)
-#     }) %>%
-#     do.call(rbind, .) %>%
-#     as_tibble() %>%
-#     distinct()
-#   SaveToTable("users", users)
-# }
-ScrapeIssues <- .ScrapeAndSave("issues", function(repo,
-                                                  state = "all",
-                                                  sort = "created",
-                                                  direction = "asc", ...) {
+
+ScrapeIssues <-
+  .ScrapeAndSave("issues", function(repo,
+                                    state = "all",
+                                    sort = "created",
+                                    direction = "asc",
+                                    since = "",
+                                    ...) {
   # Scrape all issues of a repo
   # Use direction `asc` to always scrape the latest items last
   dat <- gh("/repos/:repo/issues", repo = repo, state = state,
-            sort = sort, direction = direction, ...)
+            sort = sort, direction = direction, since = since,
+            ...)
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
@@ -49,9 +40,19 @@ ScrapeIssues <- .ScrapeAndSave("issues", function(repo,
     distinct(id, .keep_all = TRUE)
 })
 
-ScrapeIssueEvents <- .ScrapeAndSave("issue_events", function(repo, ...) {
+ScrapeIssueEvents <- .ScrapeAndSave("issue_events", function(repo,
+                                                             direction = "asc",
+                                                             since = "",
+                                                             ...) {
   # Scrape all issue events of a repo
-  dat <- gh("/repos/:repo/issues/events", repo = repo, ...)
+  dat <-
+    gh(
+      "/repos/:repo/issues/events",
+      repo = repo,
+      direction = direction,
+      since = since,
+      ...
+    )
   if (is.null(dat)) return()
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %>%
@@ -78,13 +79,16 @@ get_issue_number <- function(x) {
     str_match("/issues/([0-9]+)") %>%
     .[1, 2] %>% as.integer()
 }
-ScrapeIssueComments <- .ScrapeAndSave("issue_comments", function(repo,
-                                                                 sort = "created",
-                                                                 direction = "asc",
-                                                                 ...) {
+ScrapeIssueComments <-
+  .ScrapeAndSave("issue_comments", function(repo,
+                                            sort = "created",
+                                            direction = "asc",
+                                            since = "",
+                                            ...) {
+    
   # Scrape all issue commens of a repo
   dat <- gh("/repos/:repo/issues/comments", repo = repo,
-            sort = sort, direction = direction, ...)
+            sort = sort, direction = direction, since = since, ...)
   if (is.null(dat)) return()
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %>%

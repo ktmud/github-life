@@ -40,4 +40,6 @@ ScrapeAll <- function(offset = 0, perpage = 5, n_max = 100,
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeIssues, "issues"))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeIssueEvents, "i_evts"))
 # ScrapeAll(n_max = 2500, fetcher = FetcherOf(ScrapeIssueComments, "i_cmts"))
+# ScrapeAll(n_max = 5, fetcher = FetcherOf(ScrapeIssueEvents, "i_evts"))
+# ScrapeAll(n_max = 5, fetcher = FetcherOf(ScrapeIssueComments, "i_cmts"))
 # ScrapeAll(offset = 0, n_max = 2500)
