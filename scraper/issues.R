@@ -38,7 +38,7 @@ ScrapeIssues <-
     do.call(rbind, .) %>%
     as_tibble() %>%
     distinct(id, .keep_all = TRUE)
-})
+}, TRUE)
 
 ScrapeIssueEvents <- .ScrapeAndSave("issue_events",
                                     function(repo, ...) {
@@ -97,4 +97,4 @@ ScrapeIssueComments <- .ScrapeAndSave("issue_comments",
     do.call(rbind, .) %>%
     as_tibble() %>%
     distinct(id, .keep_all = TRUE)
-})
+}, TRUE)

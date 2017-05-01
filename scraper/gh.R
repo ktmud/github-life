@@ -272,7 +272,7 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   res
 }
 
-.ScrapeAndSave <- function(category, scraper) {
+.ScrapeAndSave <- function(category, scraper, has_since = FALSE) {
   # Generate a function to scrape and save to a local file
   # Return:
   #  a scraper function that returns
@@ -285,8 +285,6 @@ gh <- function(..., verbose = FALSE, retry_count = 0) {
   #  whose first two parameters will always be `repo` and `skip_existing`
   
   # check whether the function supports a `since` argument
-  has_since <- any(str_detect(attr(scraper, "srcref"), "since *="))
-  
   return(function(repo, skip_existing = TRUE,
                   l_name = NULL, l_n = 5, ...) {
     fpath <- fname(repo, category)
