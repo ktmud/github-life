@@ -46,19 +46,18 @@ db_get <- function(query, retry_count = 0) {
   }, error = function(err) { 
     assign("last_err", err, envir = .GlobalEnv)
     # if the error was server gone away, try reconnect
-    if (err$message == "MySQL server has gone away [2006]") {
+    if (str_detect(err$message, "gone away")) {
       message("MySQL has gone way, try reconnecting..")
       db_connect()
     }
-    if (retry_count < 2) {
-      Sys.sleep(2)  # retry at most 5 times every 5 secs
-      message("This query got an error:")
-      message(query)
-      message(err)
-      res <<- db_get(query, retry_count + 1)
-    } else {
+    if (retry_count > 2) {
       stop(err)
     }
+    Sys.sleep(5)  # retry at most 5 times every 10 secs
+    message("This query got an error:")
+    message(query)
+    message(err)
+    res <<- db_get(query, retry_count + 1)
   })
   res
 }
@@ -71,7 +70,15 @@ db_save <- function(name, value, retry_count = 0) {
   #   name - the name of a table
   #   value - the values in a data frame, must have a `id` column
   # Return: whether writeTable succeed.
-  if (nrow(value) < 1) return(TRUE)
+  n <- nrow(value)
+  if (n < 1) return(TRUE)
+  
+  # each chunk at most 2MB
+  n_parts <- as.integer(ceiling(object.size(value) / (1024*1024*2)))
+  if (n_parts > 1) {
+    message("Object too large, split into ", n_parts, " parts.")
+    return(db_split_save(name, value, n_parts))
+  }
   
   name_q <- dbQuoteIdentifier(db$con, name)
   tryCatch({
@@ -80,20 +87,37 @@ db_save <- function(name, value, retry_count = 0) {
   }, error = function(err) {
     assign("last_err", err, envir = .GlobalEnv)
     # if the error was server gone away, try reconnect
-    if (err$message == "MySQL server has gone away [2006]") {
+    if (str_detect(err$message, "gone away")) {
       message("MySQL has gone way, try reconnecting..")
       db_connect()
+      if (retry_count > 0) {
+        # if gone away happens too often, it is most likely because of
+        # packet size too large, split the chunks in to half, then try again.
+        return(db_split_save(name, value))
+      }
     }
-    # have already retried two times
-    if (retry_count > 2) {
+    # have already retried 5 times
+    if (retry_count > 5) {
       message(err$msssage)
       stop(err)
     }
-    # try one more time
+    # wait a while before next retry
+    Sys.sleep(2)
     db_save(name, value, retry_count + 1)
   })
   return(TRUE)
 }
+db_split_save <- function(name, value, n_parts = 2) {
+  # cut data into half and retry, until it succeed
+  n <- nrow(value)
+  perbatch <- floor(n / n_parts)
+  for (i in seq(1, n - 1, perbatch)) {
+    j <- min(n, i + perbatch)
+    db_save(name, value[i:j, ])
+  }
+  return(TRUE)
+}
+
 RepoExistsInTable <- function(fullname, in_table = "g_issues") {
   # Check whether repo exists in a database table
   res <- dbGetQuery(db$con, sprintf(

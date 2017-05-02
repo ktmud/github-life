@@ -91,6 +91,13 @@ sudo gdebi shiny-server-1.5.3.838-amd64.deb
 3. If you want parallel scraping, run `scrape_cluser.R`, otherwise dive into `scrape.R` and run appropriate functions as you needed.
 4. After the scraping is done, then you can add MySQL indexes using `database/indexes.sql`. There are other scripts in the `database` folders as well, but they were for when you want to scrape all data into local csv files before importing to the database (which would not be necessary if you can have the mysql service up and running from the start).
 
+### Caveats
+
+- Please make sure `max_allowed_packet` for both MySQL client and server is set to an appropriate high value, otherwise writing `issues` batches might fail. We are already splitting the scraped results into chunks.
+- GitHub at most returns 60,000 items per query, so you might miss some data for very large projects. Especially for the issue events and issue comments data.
+- `scrape-log` stores when was the last item your scraped updated, and GitHub allows us to appoint a `since` parameter to filter more recent data points. So you can rerun the scraper at any time to collect newly generated data after your last scraping attempt. Already scraped data will NOT be scraped again (unless you specifically set `skip_existing` to `FALSE`).
+
+
 ## TODO
 
 - [ ] Make this app a docker dontainer

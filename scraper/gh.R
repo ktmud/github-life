@@ -157,6 +157,7 @@ gh <- function(..., verbose = TRUE, retry_count = 0) {
   args$per_page <- 100  # always request maximum number of data
   
   err <- NULL
+  res <- NULL
   
   handle_error <- function(x) {
     if (is.list(x$headers)) {
@@ -178,7 +179,7 @@ gh <- function(..., verbose = TRUE, retry_count = 0) {
   }, error = handle_error)
   
   # handle exceptions
-  if (!is.null(err)) {
+  if (!is.null(err) || is.null(res)) {
     # Acceptable failures returns NULL
     # 404: Not Found
     # 451: Blocked
