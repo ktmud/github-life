@@ -298,21 +298,21 @@ gh <- function(..., verbose = TRUE, retry_count = 0) {
       return(-1)
     }
     
-    if (has_since) {
-      since <- "1970-01-01T00:00:00Z"
-      if (fexists) {
-        since <- read_file(fpath)
-        # if file content is all numeric numbers,
-        # then from legacy files
-        # use file mtime as the since time
-        if (str_length(since) != 20) {
-          since <- (as.POSIXlt(file.mtime(fpath), tz = "UTC") - seconds(60)) %>%
-            format("%Y-%m-%dT%H:%M:%SZ")
-        }
+    since <- NULL
+    if (has_since && fexists) {
+      since <- read_file(fpath)
+      # if file content is all numeric numbers,
+      # then from legacy files
+      # use file mtime as the since time
+      if (str_length(since) != 20) {
+        since <- (as.POSIXlt(file.mtime(fpath), tz = "UTC") - seconds(60)) %>%
+          format("%Y-%m-%dT%H:%M:%SZ")
       }
-      dat <- scraper(repo, since = since)
+    }
+    if (is.null(since)) {
+      dat <- scraper(repo, ...)
     } else {
-      dat <- scraper(repo)
+      dat <- scraper(repo, since = since, ...)
     }
     
     # return NULL if resource not available

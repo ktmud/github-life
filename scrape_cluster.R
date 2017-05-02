@@ -7,7 +7,7 @@ library(parallel)
 
 source("include/init.R")
 
-n_workers <- 4
+n_workers <- 2
 # cleanup existing log files
 unlink("/tmp/github-scrape-*.log")
 
@@ -23,15 +23,14 @@ GenExpression <- function(i, partition, fetcher = "FetchAll") {
   # list_fun <- "ListNotScrapedRepos"
   parse(
     text = sprintf(
+      # dont reload if data already loaded
       'if (!exists("ScrapeAll")) {
-        # dont reload if data already loaded
-        .GlobalEnv$logfile <- paste0("/tmp/github-scrape-", Sys.getpid(), ".log")
-        .GlobalEnv$n_workers <- %s  # this is needed for token control
-        # sink("/dev/null")  # all normal messages go to limbo
-        source("scrape.R")
-      }
+      .GlobalEnv$logfile <- paste0("/tmp/github-scrape-", Sys.getpid(), ".log")
+      .GlobalEnv$n_workers <- %s
+      source("scrape.R") }
       ScrapeAll(offset = %s, n_max = %s, list_fun = %s, fetcher = %s)
       ',
+      # this is needed for token hit rate control
       n_workers,
       partition[i],
       partition[i + 1],
@@ -91,15 +90,15 @@ n_total <- nrow(available_repos)
 partition <- seq(0, n_total + 1, 20)
 
 # 1. Scrape different data categories one by one
-cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
-cl_execute('FetcherOf(ScrapeLanguages, "lang")')
-cl_execute('FetcherOf(ScrapeLanguages, "lang")')
-cl_execute('FetcherOf(ScrapePunchCard, NULL)')
+# cl_execute('FetcherOf(ScrapeRepoDetails, "stars")')
+# cl_execute('FetcherOf(ScrapeLanguages, "lang")')
+# cl_execute('FetcherOf(ScrapeLanguages, "lang")')
+# cl_execute('FetcherOf(ScrapePunchCard, NULL)')
 
 # run though each data category at least twice, to avoid zero results
 # becauses of GitHub's mssing cache
-cl_execute('FetcherOf(ScrapeContributors, "weeks")')
-cl_execute('FetcherOf(ScrapeStargazers, "stars")')
+# cl_execute('FetcherOf(ScrapeContributors, "weeks")')
+# cl_execute('FetcherOf(ScrapeStargazers, "stars")')
 cl_execute('FetcherOf(ScrapeIssues, "issues")')
 cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
 cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')

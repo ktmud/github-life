@@ -42,7 +42,7 @@ FetcherOf <- function(FUN, l_name = ".", l_n = 5) {
   return(function(repos, skip_existing = TRUE, ...) {
     walk(repos, function(repo) {
       cat("$", pad(str_trunc(repo, 40), 40, "right"))
-      FUN(repo, skip_existing, l_name, l_n, l_add_pipe = FALSE, ...)
+      FUN(repo, skip_existing, l_name, l_n, ...)
       cat("\n")
     })
   })

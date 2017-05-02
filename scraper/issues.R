@@ -2,15 +2,12 @@
 ScrapeIssues <-
   .ScrapeAndSave("issues", function(repo,
                                     state = "all",
-                                    sort = "created",
                                     direction = "asc",
-                                    since = "1970-01-01T00:00:00Z",
                                     ...) {
   # Scrape all issues of a repo
   # Use direction `asc` to always scrape the latest items last
-  dat <- gh("/repos/:repo/issues", repo = repo, state = state,
-            sort = sort, direction = direction, since = since,
-            ...)
+  dat <- gh("/repos/:repo/issues", repo = repo,
+            state = state, direction = direction, ...)
   if (is.null(dat)) return()
   # return empty data frame if no data available
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
@@ -72,14 +69,12 @@ get_issue_number <- function(x) {
 }
 ScrapeIssueComments <- .ScrapeAndSave("issue_comments",
                                       function(repo,
-                                               sort = "created",
                                                direction = "asc",
-                                               since = "1970-01-01T00:00:00Z",
                                                ...) {
                                         
   # Scrape all issue commens of a repo
   dat <- gh("/repos/:repo/issues/comments", repo = repo,
-            sort = sort, direction = direction, since = since, ...)
+            direction = direction, ...)
   if (is.null(dat)) return()
   if (length(dat) == 0 || is.atomic(dat)) return(data.frame())
   dat %>%
