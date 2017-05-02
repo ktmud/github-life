@@ -34,6 +34,7 @@ db_connect <- function(retry_count = 0) {
   # export global variables
   assign("db", db, envir = .GlobalEnv)
   assign("ght", ght, envir = .GlobalEnv)
+  db
 }
 
 if (!exists("db")) db_connect()
@@ -71,7 +72,7 @@ db_save <- function(name, value, retry_count = 0) {
   #   value - the values in a data frame, must have a `id` column
   # Return: whether writeTable succeed.
   n <- nrow(value)
-  if (n < 1) return(TRUE)
+  if (!is.null(n) && n < 1) return(TRUE)
   
   # each chunk at most 2MB
   n_parts <- as.integer(ceiling(object.size(value) / (1024*1024*2)))
@@ -111,9 +112,11 @@ db_split_save <- function(name, value, n_parts = 2) {
   # cut data into half and retry, until it succeed
   n <- nrow(value)
   perbatch <- floor(n / n_parts)
-  for (i in seq(1, n - 1, perbatch)) {
+  for (i in seq(0, n, perbatch)) {
     j <- min(n, i + perbatch)
-    db_save(name, value[i:j, ])
+    if (i < j) {
+      db_save(name, value[(i+1):j, ])
+    }
   }
   return(TRUE)
 }

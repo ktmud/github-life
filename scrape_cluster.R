@@ -5,7 +5,7 @@
 library(future)
 library(parallel)
 
-source("include/init.R")
+source("scrape.R")
 
 n_workers <- 2
 # cleanup existing log files
@@ -16,28 +16,6 @@ if (exists("cl")) {
 } else {
   cl <- makeCluster(n_workers)
   plan(cluster, workers = cl)
-}
-
-GenExpression <- function(i, partition, fetcher = "FetchAll") {
-  list_fun <- "ListRandomRepos"
-  # list_fun <- "ListNotScrapedRepos"
-  parse(
-    text = sprintf(
-      # dont reload if data already loaded
-      'if (!exists("ScrapeAll")) {
-      .GlobalEnv$logfile <- paste0("/tmp/github-scrape-", Sys.getpid(), ".log")
-      .GlobalEnv$n_workers <- %s
-      source("scrape.R") }
-      ScrapeAll(offset = %s, n_max = %s, list_fun = %s, fetcher = %s)
-      ',
-      # this is needed for token hit rate control
-      n_workers,
-      partition[i],
-      partition[i + 1],
-      list_fun,
-      fetcher
-    )
-  )
 }
 
 f <- list()
@@ -59,9 +37,26 @@ cl_cleanup <- function(.f = f) {
 cl_execute <- function(fetcher) {
   start_time <- Sys.time()
   for (i in seq(1, length(partition) - 1)) {
-    myexp <- GenExpression(i, partition, fetcher = fetcher)
-    # this .GlobalEnv is actually the env of the child process
-    f[[length(f) + 1]] <<- future(eval(myexp, envir = .GlobalEnv))
+    f[[length(f) + 1]] <<- future({
+      .GlobalEnv$logfile <- paste0("/tmp/github-scrape-", Sys.getpid(), ".log")
+      errlog <- file("/tmp/github-scrape-error.log", "a")
+      sink(errlog, append = TRUE, type = "message")
+      source("scrape.R")
+      ScrapeAll(offset = p_start, n_max = p_end,
+                list_fun = ListRandomRepos,
+                fetcher = fetcher)
+    },
+    globals = list(
+      p_start = partition[i],
+      p_end = partition[i + 1],
+      fetcher = fetcher,
+      n_workers = n_workers,
+      # pass in two already loaded variable,
+      # so child processes doesn't have to load them again
+      tokens = tokens,
+      available_repos = available_repos
+    ),
+    gc = TRUE)
     message("Queued: ", partition[i])
     if (as.numeric(Sys.time() - start_time, units = "mins") > 5) {
       # The memory in forked R sessions seems never recycled.
@@ -99,15 +94,15 @@ partition <- seq(0, n_total + 1, 20)
 # becauses of GitHub's mssing cache
 # cl_execute('FetcherOf(ScrapeContributors, "weeks")')
 # cl_execute('FetcherOf(ScrapeStargazers, "stars")')
-cl_execute('FetcherOf(ScrapeIssues, "issues")')
-cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
-cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
+# cl_execute('FetcherOf(ScrapeIssues, "issues")')
+cl_execute(FetcherOf(ScrapeIssueComments, "i_cmts"))
+cl_execute(FetcherOf(ScrapeIssueEvents, "i_evts"))
 
-cl_execute('FetcherOf(ScrapeContributors, "weeks")')
-cl_execute('FetcherOf(ScrapeStargazers, "stars")')
-cl_execute('FetcherOf(ScrapeIssues, "issues")')
-cl_execute('FetcherOf(ScrapeIssueComments, "i_cmts")')
-cl_execute('FetcherOf(ScrapeIssueEvents, "i_evts")')
+cl_execute(FetcherOf(ScrapeContributors, "weeks"))
+cl_execute(FetcherOf(ScrapeStargazers, "stars"))
+cl_execute(FetcherOf(ScrapeIssues, "issues"))
+cl_execute(FetcherOf(ScrapeIssueComments, "i_cmts"))
+cl_execute(FetcherOf(ScrapeIssueEvents, "i_evts"))
 
 # 2. Or, you can chose to scrape repository one by one
 # cl_excute("FetchAll")
