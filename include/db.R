@@ -111,7 +111,7 @@ db_save <- function(name, value, retry_count = 0) {
 db_split_save <- function(name, value, n_parts = 2) {
   # cut data into half and retry, until it succeed
   n <- nrow(value)
-  perbatch <- floor(n / n_parts)
+  perbatch <- max(floor(n / n_parts), 1)
   for (i in seq(0, n, perbatch)) {
     j <- min(n, i + perbatch)
     if (i < j) {
@@ -147,6 +147,8 @@ read_dat <- function(fpath, sql, .fresh = FALSE) {
   dat
 }
 subset_dat <- function(dat, offset = 0, limit = 5) {
+  # return an empty data frame is offset is too large
+  if (offset > nrow(dat)) return(data.frame())
   dat[(offset+1):min(nrow(dat), offset+limit), , drop = FALSE]
 }
 
