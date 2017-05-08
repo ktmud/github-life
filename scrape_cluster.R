@@ -7,7 +7,7 @@ library(parallel)
 
 source("scrape.R")
 
-n_workers <- 4
+n_workers <- 2
 # cleanup existing log files
 unlink("/tmp/github-scrape-*.log")
 
@@ -23,8 +23,8 @@ cl_wait <- function(f) {
   lapply(f, FUN = function(x) {
     if (is.null(x) || !("Future" %in% class(x))) return()
     tryCatch(value(x), error = function(err) {
-      message("Error at executing:")
-      message(x$expr)
+      message("Error at scraping:")
+      message(x$globals$p_start)
       message(err)
     })
   })
@@ -58,7 +58,7 @@ cl_execute <- function(fetcher) {
     ),
     gc = TRUE)
     message("Queued: ", partition[i])
-    if (as.numeric(Sys.time() - start_time, units = "mins") > 60) {
+    if (as.numeric(Sys.time() - start_time, units = "mins") > 5) {
       # The memory in forked R sessions seems never recycled.
       # We'd have to restart the whole cluster once in a while
       # in order to keep the memory consumption under control.
@@ -67,6 +67,7 @@ cl_execute <- function(fetcher) {
       message("Restarting the cluster.. so to release some memory.")
       cl_cleanup()
       stopCluster(cl)
+      Sys.sleep(5)
       cl <- makeCluster(n_workers)
       setDefaultCluster(cl)
       start_time <- Sys.time()
@@ -82,7 +83,7 @@ cl_execute <- function(fetcher) {
 # nonexisting <- ListNotScrapedRepos(limit = 50000)
 # n_total <- nrow(nonexisting)
 n_total <- nrow(available_repos)
-partition <- seq(0, n_total + 1, 200)
+partition <- seq(0, n_total + 1, 100)
 
 # 1. Scrape different data categories one by one
 # cl_execute(FetcherOf(ScrapeRepoDetails, "stars"))
@@ -94,15 +95,17 @@ partition <- seq(0, n_total + 1, 200)
 # becauses of GitHubs mssing cache
 # cl_execute(FetcherOf(ScrapeContributors, "weeks"))
 # cl_execute(FetcherOf(ScrapeStargazers, "stars"))
-cl_execute(FetcherOf(ScrapeIssues, "issues"))
-cl_execute(FetcherOf(ScrapeIssueComments, "i_cmts"))
-cl_execute(FetcherOf(ScrapeIssueEvents, "i_evts"))
+# cl_execute(FetcherOf(ScrapeIssues, "issues"))
+# cl_execute(FetcherOf(ScrapeIssueComments, "i_cmts"))
+# cl_execute(FetcherOf(ScrapeIssueEvents, "i_evts"))
 
-cl_execute(FetcherOf(ScrapeContributors, "weeks"))
-cl_execute(FetcherOf(ScrapeStargazers, "stars"))
-cl_execute(FetcherOf(ScrapeIssues, "issues"))
-cl_execute(FetcherOf(ScrapeIssueComments, "i_cmts"))
+# cl_execute(FetcherOf(ScrapeContributors, "weeks"))
+# cl_execute(FetcherOf(ScrapeStargazers, "stars"))
+# cl_execute(FetcherOf(ScrapeIssues, "issues"))
+# cl_execute(FetcherOf(ScrapeIssueComments, "i_cmts"))
 cl_execute(FetcherOf(ScrapeIssueEvents, "i_evts"))
+cl_execute(FetcherOf(ScrapeContributors, "weeks"))
+cl_execute(FetcherOf(ScrapeContributors, "weeks"))
 
 # 2. Or, you can chose to scrape repository one by one
 # cl_excute("FetchAll")

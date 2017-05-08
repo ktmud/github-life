@@ -17,8 +17,8 @@ db_connect <- function(retry_count = 0) {
   }, error = function(err) {
     # assign("last_err", err, envir = .GlobalEnv)
     # retry connecting for 3 times, wait for 5 secs between each retry
-    Sys.sleep(5)
-    if (retry_count > 3) {
+    Sys.sleep(10)
+    if (retry_count > 10) {
       stop(err)
     }
     message("Retry connecting to MySQL...")

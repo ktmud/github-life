@@ -24,13 +24,12 @@ ALTER TABLE `g_stargazers`
 
 ALTER TABLE `g_issues`
   ADD INDEX (`user_id`),
-  ADD INDEX (`repo`, `created_at`),
   ADD INDEX (`repo`, `number`),
   ALGORITHM = INPLACE,
   LOCK = NONE;
   
 ALTER TABLE `g_issue_events`
-  ADD INDEX (`repo`, `event`, `created_at`),
+  ADD INDEX (`repo`, `event`),
   ADD INDEX (`issue_id`),
   ADD INDEX (`actor_id`),
   ALGORITHM = INPLACE,

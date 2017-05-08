@@ -51,13 +51,15 @@ MYSQL_PASSWD=ghtorrentpassword
 Please make sure these packages were successfully installed before you run the scraper.
 
 ```R
-install.packages(c("tidyverse", "dplyr", "lubridate", "future"))
+install.packages(c("tidyverse", "dplyr", "lubridate", "future", "shiny",
+  "shinyjs", "shinydashboard"))
 install.packages("devtools")
 devtools::install_github("r-pkgs/gh")
 devtools::install_github("rstats-db/DBI")
 devtools::install_github("ktmud/RMySQL@upsert")
 devtools::install_github("hadley/ggplot2")
 devtools::install_github("ropensci/plotly")
+devtools::install_github("kirillseva/cacher")
 ```
 
 Depending on your machine, compling some of the packages may need additional

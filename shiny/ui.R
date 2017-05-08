@@ -48,7 +48,7 @@ single_repo_tab <- div(
             create = FALSE,
             searchField = c("name", "repo", "description"),
             render = I(read_file("www/selectize_render.js")),
-            placeholder = "Pick a repository..."
+            placeholder = "Select or type in a repository..."
           )
         ),
         uiOutput("repo_meta")

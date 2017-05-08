@@ -27,7 +27,7 @@ RepoStats <- .cached("stats", function(repo,
   dat <- db_get(
     sprintf(
       "
-      SELECT week, author, %s FROM g_contributors
+      SELECT DATE(`week`) AS `week`, author, %s FROM g_contributors
       WHERE repo = %s
       ",
       dbQuoteIdentifier(db$con, col_name),
@@ -104,12 +104,12 @@ RepoIssueEvents <- .cached("issue_events", function(repo) {
     sprintf(
       "
       SELECT
-        `repo`,
-        DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`,
-        `event`,
-        count(*) as `count`
-        FROM `g_issue_events`
-        WHERE `repo` = %s
+      `repo`,
+      `event`,
+      DATE(SUBDATE(SUBDATE(`created_at`, WEEKDAY(`created_at`)), 1)) AS `week`,
+      count(*) as `count`
+      FROM `g_issue_events`
+      WHERE `repo` = %s
       GROUP BY `week`, `event`
       ",
       dbQuoteString(db$con, repo)
@@ -118,14 +118,14 @@ RepoIssueEvents <- .cached("issue_events", function(repo) {
 })
 RepoStargazers <- .cached("stargazers", function(repo) {
   dat <- db_get(sprintf("
-    SELECT
-      `repo`,
-      DATE(SUBDATE(SUBDATE(`starred_at`, WEEKDAY(`starred_at`)), 1)) AS `week`,
-      count(*) as `n_stargazers`
-    FROM `g_stargazers`
-    WHERE `repo` = %s
-    GROUP BY `week`
-  ", dbQuoteString(db$con, repo))) %>%
+                        SELECT
+                        `repo`,
+                        DATE(SUBDATE(SUBDATE(`starred_at`, WEEKDAY(`starred_at`)), 1)) AS `week`,
+                        count(*) as `n_stargazers`
+                        FROM `g_stargazers`
+                        WHERE `repo` = %s
+                        GROUP BY `week`
+                        ", dbQuoteString(db$con, repo))) %>%
     FillEmptyWeeks()
 })
 
@@ -221,7 +221,7 @@ GetRepoDetails <- .cached("repo", function(repo) {
   dat <- db_get(sprintf(
     "SELECT * from `g_repo`
     WHERE `owner_login` = '%s' and `name` = '%s'"
-  , tmp[1], tmp[2]))
+    , tmp[1], tmp[2]))
   if (is.null(dat) || nrow(dat) < 1) {
     return(tibble(repo = repo, exists = FALSE))
   }
@@ -233,18 +233,18 @@ RenderRepoDetails <- function(d) {
   if (is.null(d)) {
     return(
       div(class = "repo-detail-placeholder",
-        "Please select a repository from the dropdown on the left.",
-        tags$br(),
-        "You may also type to search."
+          "Please select a repository from the dropdown on the left.",
+          tags$br(),
+          "You may also type to search."
       )
     )
   }
   if (!d$exists) {
     return(
       div(class = "repo-detail-placeholder",
-        "Could not found data for this repository.",
-        tags$br(),
-        "Either it doesn't exists or we didn't scrape it yet."
+          "Could not found data for this repository.",
+          tags$br(),
+          "Either it doesn't exists or we didn't scrape it yet."
       )
     )
   }
