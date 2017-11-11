@@ -1,0 +1,104 @@
+strong {
+  font-weight: 600;
+}
+
+.selectize-input {
+  border-radius: 3px;
+}
+.selectize-input.input-active {
+  border-radius: 3px 3px 0 0;
+}
+.selectize-dropdown, .selectize-dropdown.form-control {
+  border-radius: 0px 0px 3px 3px;
+  margin-top: -1px;
+}
+.selectize-dropdown [data-selectable] {
+	border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+.selectize-dropdown .by {
+	font-size: 11px;
+	opacity: 0.8;
+}
+.selectize-dropdown .by::before {
+	content: 'by ';
+}
+.selectize-dropdown .name {
+	font-weight: bold;
+	margin-right: 5px;
+}
+.selectize-dropdown .title {
+	display: block;
+}
+.selectize-dropdown .description {
+	font-size: 12px;
+	display: block;
+	opacity: 0.5;
+	white-space: nowrap;
+	width: 100%;
+	text-overflow: ellipsis;
+	overflow: hidden;
+}
+.selectize-dropdown .meta {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	font-size: 10px;
+}
+.selectize-dropdown .meta li {
+	margin: 0;
+	padding: 0;
+	display: inline;
+	margin-right: 10px;
+}
+.selectize-dropdown .meta li span {
+	font-weight: bold;
+}
+
+#repo_detail {
+  min-height: 40pt;
+  font-size: 14px;
+}
+.repo-detail-placeholder {
+  text-align: center;
+  padding-top: 10px;
+}
+.repo-details li {
+  margin-right: 6%;
+}
+.repo-details .time-points {
+  color: #999;
+  font-size: 12px;
+  margin-bottom: 0;
+}
+.repo-details .time-points span,
+.repo-details .time-points strong {
+  display: inline-block;
+}
+.repo-details .desc {
+  min-height: 52px;
+  padding-right: 15px;
+  position: relative;
+}
+.repo-details .to-github {
+  position: absolute;
+  right: 0px;
+  top: -5px;
+  color: #999;
+}
+
+.repo-meta {
+  margin-bottom: 0;
+  margin-top: -5px;
+}
+.repo-meta li {
+  padding-right: 10px;
+}
+.repo-meta .fa-star {
+  font-size: 0.85em;
+}
+
+.plotly + .info {
+  margin-top: 10px;
+  color: #999;
+  font-style: italic;
+}

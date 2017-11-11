@@ -1,0 +1,12 @@
+
+## Death and Life of Great Open Source Projects
+
+### Introduction
+
+With its unique and user-friendly social coding features such as issues tracking, forks,  pull requests, commit comments and wikis, GitHub has deservedly become the most popular source code hosting service in the world. Many open source developers use GitHub not only for source code management, but also to collaborate with fellow developers, share knowledge, or simply showcase their personal work. The vibrant and full-scale online community of GitHub makes its data a prime window on both the social and internal dynamics of open source development.
+
+This project is inspired and supported by the magnitude and diversity of GitHub’s project history and user behavior data. The goal is to identify the pattern of evolvement for different types of projects and pinpoint which indicators and determining factors are most directly related to each variety of projects and patterns. Because of the sheer amount of data and varieties in project types, we focus more on assessing the relevancy of those evaluation metrics, instead of laying out the patterns and models for all project types.
+
+## Usage
+
+Please click on one of the tabs on the sidebar to begin explore GitHub data.
